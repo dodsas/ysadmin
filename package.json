@@ -1,0 +1,17 @@
+{
+  "name": "ysadmin",
+  "version": "0.1.0",
+  "description": "Admin console with site keep-alive monitoring",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.1"
+  }
+}

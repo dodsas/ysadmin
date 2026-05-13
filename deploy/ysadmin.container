@@ -1,0 +1,19 @@
+[Unit]
+Description=ysadmin keep-alive monitor
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image=localhost/ysadmin:latest
+ContainerName=ysadmin
+PublishPort=3000:3000
+Volume=ysadmin-data:/app/data:Z
+Environment=PORT=3000
+Environment=PING_INTERVAL_MS=600000
+
+[Service]
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target default.target
