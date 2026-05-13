@@ -61,12 +61,13 @@ pipeline {
 
         stage('Transfer') {
           steps {
-            sshagent(credentials: [env.SSH_CRED]) {
+            withCredentials([sshUserPrivateKey(credentialsId: env.SSH_CRED, keyFileVariable: 'SSH_KEY')]) {
               sh '''
                 set -e
-                ssh -o StrictHostKeyChecking=accept-new ${DEPLOY_USER}@${DEPLOY_HOST} "mkdir -p ${REMOTE_DIR}"
-                scp -o StrictHostKeyChecking=accept-new ${APP_NAME}.tar.gz ${DEPLOY_USER}@${DEPLOY_HOST}:${REMOTE_DIR}/
-                ssh -o StrictHostKeyChecking=accept-new ${DEPLOY_USER}@${DEPLOY_HOST} "
+                SSH_OPTS="-i ${SSH_KEY} -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/dev/null"
+                ssh ${SSH_OPTS} ${DEPLOY_USER}@${DEPLOY_HOST} "mkdir -p ${REMOTE_DIR}"
+                scp ${SSH_OPTS} ${APP_NAME}.tar.gz ${DEPLOY_USER}@${DEPLOY_HOST}:${REMOTE_DIR}/
+                ssh ${SSH_OPTS} ${DEPLOY_USER}@${DEPLOY_HOST} "
                   set -e
                   cd ${REMOTE_DIR}
                   tar -xzf ${APP_NAME}.tar.gz
@@ -80,10 +81,11 @@ pipeline {
 
         stage('Deploy') {
           steps {
-            sshagent(credentials: [env.SSH_CRED]) {
+            withCredentials([sshUserPrivateKey(credentialsId: env.SSH_CRED, keyFileVariable: 'SSH_KEY')]) {
               sh '''
                 set -e
-                ssh -o StrictHostKeyChecking=accept-new ${DEPLOY_USER}@${DEPLOY_HOST} "
+                SSH_OPTS="-i ${SSH_KEY} -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/dev/null"
+                ssh ${SSH_OPTS} ${DEPLOY_USER}@${DEPLOY_HOST} "
                   export APP_NAME=${APP_NAME}
                   export APP_DIR=${REMOTE_DIR}
                   export HOST_PORT=${HOST_PORT}
@@ -98,10 +100,11 @@ pipeline {
 
         stage('Smoke Test') {
           steps {
-            sshagent(credentials: [env.SSH_CRED]) {
+            withCredentials([sshUserPrivateKey(credentialsId: env.SSH_CRED, keyFileVariable: 'SSH_KEY')]) {
               sh '''
                 set -e
-                ssh -o StrictHostKeyChecking=accept-new ${DEPLOY_USER}@${DEPLOY_HOST} "
+                SSH_OPTS="-i ${SSH_KEY} -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/dev/null"
+                ssh ${SSH_OPTS} ${DEPLOY_USER}@${DEPLOY_HOST} "
                   curl -fsS http://127.0.0.1:${HOST_PORT}/api/health
                 "
               '''
