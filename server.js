@@ -5,7 +5,7 @@ import { listTargets, addTarget, removeTarget, getTarget } from './lib/store.js'
 import { startScheduler, checkTarget } from './lib/pinger.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PORT = Number(process.env.PORT ?? 3000);
+const PORT = Number(process.env.PORT ?? 6666);
 
 const app = express();
 app.use(express.json());

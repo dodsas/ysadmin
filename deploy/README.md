@@ -38,7 +38,7 @@ Jenkins **Manage Jenkins → Credentials**에 Private Key (`~/.ssh/ysadmin_deplo
 - ID: **`ysadmin-deploy-ssh`**
 - Username: **`dodsas`**
 
-### 1-3. Jenkins Pipeline 잡 생성
+### 1-3. Jenkins Pipeline Item 생성
 
 - **New Item → Pipeline** 생성 (이름 예: `ysadmin-deploy`)
 - **Pipeline → Definition: Pipeline script from SCM**
@@ -53,7 +53,7 @@ Jenkins **Manage Jenkins → Credentials**에 Private Key (`~/.ssh/ysadmin_deplo
   - `DEPLOY_HOST`: Podman 호스트 명/IP
   - `DEPLOY_USER`: `dodsas` (기본)
   - `REMOTE_DIR`: `/home/dodsas/work/ysadmin` (기본)
-  - `HOST_PORT`: `3000`
+  - `HOST_PORT`: `6666`
   - `DEPLOY_BRANCH`: `main`
 
 ### 1-4. Git 저장소 Webhook
@@ -82,22 +82,36 @@ git push origin main    # ← 이것만으로 배포 완료
 
 ## 3. 호스트 재부팅에도 살아남기 (선택, 권장)
 
-`--restart=always`는 Podman 데몬 차원 재시작만 처리합니다. **호스트 OS 재부팅 후 자동 기동**이 필요하면 Quadlet으로 systemd에 등록.
+compose의 `restart: always`는 Podman 서비스 차원의 재시작만 처리하고 호스트 OS 재부팅까진 살아남지 못합니다 (linger 적용 후에도 마찬가지 — linger는 user systemd만 유지하지 compose가 띄운 컨테이너를 자동 기동해주진 않음).
+
+부팅 시 자동으로 `podman-compose up`을 실행하는 user-level systemd unit으로 해결:
 
 ```bash
-# dodsas 사용자로
-mkdir -p ~/.config/containers/systemd
-cp /home/dodsas/work/ysadmin/deploy/ysadmin.container ~/.config/containers/systemd/
+mkdir -p ~/.config/systemd/user
+cat > ~/.config/systemd/user/ysadmin-compose.service <<'EOF'
+[Unit]
+Description=ysadmin (podman-compose)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/dodsas/work/ysadmin
+ExecStart=/usr/bin/podman-compose up -d
+ExecStop=/usr/bin/podman-compose down
+
+[Install]
+WantedBy=default.target
+EOF
 
 systemctl --user daemon-reload
-systemctl --user start ysadmin.service
-systemctl --user enable ysadmin.service     # linger와 함께 부팅 시 자동 기동
-systemctl --user status ysadmin.service
+systemctl --user enable --now ysadmin-compose.service
 ```
 
-⚠ 주의: Quadlet 사용 시 `deploy.sh`의 `podman run`과 Quadlet이 만든 컨테이너가 같은 이름(`ysadmin`)을 쓰려고 해 충돌합니다. 둘 중 하나만 운영하거나, Quadlet 채택 시 `deploy.sh`의 `podman run` 블록을 `systemctl --user restart ysadmin.service`로 교체해야 합니다.
+전제: 2단계의 `enable-linger`가 적용되어 있어야 부팅 시 user systemd가 시작됨.
 
-지금은 우선 `--restart=always`로 운영하고, 운영 안정화 후 Quadlet 전환을 권장.
+자세한 절차는 [SETUP.md §10](./SETUP.md)을 참고.
 
 ## 4. 운영 명령어
 
