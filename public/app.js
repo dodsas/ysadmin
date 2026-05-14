@@ -247,6 +247,7 @@ const WAKE_POLL_INTERVAL_MS = 5000;
 const SHUTDOWN_WINDOW_MS = 60000;
 const activePolls = new Set();
 const activeShutdowns = new Set();
+const activeChecks = new Set();
 
 function isWaking(computer) {
   if (computer.lastStatus === 'up') return false;
@@ -284,60 +285,76 @@ function renderComputer(computer) {
   if (computer.lastStatusAt) metaParts.push(`상태확인: ${formatTimestamp(computer.lastStatusAt)}`);
   $('[data-meta]', node).textContent = metaParts.join(' · ');
 
-  const wakeBtn = $('[data-action="wake"]', node);
+  const toggleBtn = $('[data-action="toggle"]', node);
   const statusBtn = $('[data-action="status"]', node);
-  const shutdownBtn = $('[data-action="shutdown"]', node);
   const shuttingDown = activeShutdowns.has(computer.id);
+  const checking = activeChecks.has(computer.id);
+  const shutdownReady = Boolean(computer.shutdown && computer.shutdown.enabled);
+
+  // 토글 상태 결정
+  toggleBtn.classList.remove('btn-primary', 'btn-warn');
+  toggleBtn.title = '';
+  toggleBtn.dataset.mode = '';
 
   if (shuttingDown) {
-    wakeBtn.textContent = '전원 켜기';
-    wakeBtn.disabled = true;
-    shutdownBtn.textContent = '끄는 중...';
-    shutdownBtn.disabled = true;
+    toggleBtn.textContent = '끄는 중...';
+    toggleBtn.disabled = true;
+    toggleBtn.classList.add('btn-warn');
+    statusBtn.disabled = true;
+  } else if (waking) {
+    toggleBtn.textContent = '켜는 중...';
+    toggleBtn.disabled = true;
+    toggleBtn.classList.add('btn-primary');
+    statusBtn.disabled = true;
+  } else if (checking) {
+    toggleBtn.textContent = '확인 중...';
+    toggleBtn.disabled = true;
+    toggleBtn.classList.add('btn-primary');
     statusBtn.disabled = true;
   } else if (lastStatus === 'up') {
-    wakeBtn.textContent = '✓ 켜짐';
-    wakeBtn.disabled = true;
-    shutdownBtn.disabled = !(computer.shutdown && computer.shutdown.enabled);
-    if (!shutdownBtn.disabled) shutdownBtn.title = '';
-    else shutdownBtn.title = '설정에서 SSH 끄기 활성화 필요';
-  } else if (waking) {
-    wakeBtn.textContent = '켜는 중...';
-    wakeBtn.disabled = true;
-    statusBtn.disabled = true;
-    shutdownBtn.disabled = true;
+    if (shutdownReady) {
+      toggleBtn.textContent = '전원 끄기';
+      toggleBtn.disabled = false;
+      toggleBtn.classList.add('btn-warn');
+      toggleBtn.dataset.mode = 'shutdown';
+    } else {
+      toggleBtn.textContent = '✓ 켜짐';
+      toggleBtn.disabled = true;
+      toggleBtn.classList.add('btn-primary');
+      toggleBtn.title = '끄기 기능: ⚙ 설정에서 SSH 활성화 필요';
+    }
+    statusBtn.disabled = false;
   } else {
-    wakeBtn.textContent = '전원 켜기';
-    wakeBtn.disabled = false;
-    shutdownBtn.disabled = true; // 꺼져있을 땐 끄기 불가
-    shutdownBtn.title = '컴퓨터가 켜져있을 때만 끌 수 있습니다';
+    toggleBtn.textContent = '전원 켜기';
+    toggleBtn.disabled = false;
+    toggleBtn.classList.add('btn-primary');
+    toggleBtn.dataset.mode = 'wake';
+    statusBtn.disabled = false;
   }
 
-  $('[data-action="wake"]', node).addEventListener('click', async (e) => {
-    const btn = e.currentTarget;
-    btn.disabled = true;
-    btn.textContent = '전송 중...';
-    try {
-      await api(`/api/computers/${computer.id}/wake`, { method: 'POST' });
+  $('[data-action="toggle"]', node).addEventListener('click', async (e) => {
+    const mode = e.currentTarget.dataset.mode;
+    if (mode === 'wake') {
+      try {
+        await api(`/api/computers/${computer.id}/wake`, { method: 'POST' });
+        await refreshComputers();
+        pollComputerStatus(computer.id, WAKE_WINDOW_MS, WAKE_POLL_INTERVAL_MS);
+      } catch (err) {
+        alert(err.message);
+        await refreshComputers();
+      }
+    } else if (mode === 'shutdown') {
+      if (!confirm(`${computer.label} 을(를) 끕니다.\n\n계속하시겠습니까?`)) return;
+      activeShutdowns.add(computer.id);
       await refreshComputers();
-      pollComputerStatus(computer.id, WAKE_WINDOW_MS, WAKE_POLL_INTERVAL_MS);
-    } catch (err) {
-      alert(err.message);
-      await refreshComputers();
-    }
-  });
-
-  $('[data-action="shutdown"]', node).addEventListener('click', async () => {
-    if (!confirm(`${computer.label} 을(를) 끕니다.\n\n계속하시겠습니까?`)) return;
-    activeShutdowns.add(computer.id);
-    await refreshComputers();
-    try {
-      await api(`/api/computers/${computer.id}/shutdown`, { method: 'POST' });
-      pollShutdownStatus(computer.id, SHUTDOWN_WINDOW_MS, WAKE_POLL_INTERVAL_MS);
-    } catch (err) {
-      alert(err.message);
-      activeShutdowns.delete(computer.id);
-      await refreshComputers();
+      try {
+        await api(`/api/computers/${computer.id}/shutdown`, { method: 'POST' });
+        pollShutdownStatus(computer.id, SHUTDOWN_WINDOW_MS, WAKE_POLL_INTERVAL_MS);
+      } catch (err) {
+        alert(err.message);
+        activeShutdowns.delete(computer.id);
+        await refreshComputers();
+      }
     }
   });
 
@@ -345,19 +362,16 @@ function renderComputer(computer) {
     openSettingsDialog(computer);
   });
 
-  $('[data-action="status"]', node).addEventListener('click', async (e) => {
-    const btn = e.currentTarget;
-    const original = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = '확인 중...';
+  $('[data-action="status"]', node).addEventListener('click', async () => {
+    activeChecks.add(computer.id);
+    await refreshComputers();
     try {
       await api(`/api/computers/${computer.id}/status`);
-      await refreshComputers();
     } catch (err) {
       alert(err.message);
     } finally {
-      btn.textContent = original;
-      btn.disabled = false;
+      activeChecks.delete(computer.id);
+      await refreshComputers();
     }
   });
 
