@@ -1,8 +1,11 @@
 import express from 'express';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
+import { createReadStream } from 'node:fs';
+import { stat } from 'node:fs/promises';
 import { listTargets, addTarget, removeTarget, getTarget, reorderTargets } from './lib/store.js';
 import { startScheduler, checkTarget } from './lib/pinger.js';
+import { refreshLunch, getLunchMeta, LUNCH_IMAGE_FILE } from './lib/lunch.js';
 import {
   listComputers,
   addComputer,
@@ -267,6 +270,32 @@ app.post('/api/computers/:id/shutdown', async (req, res) => {
     res.json(result);
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+app.get('/api/lunch', async (_req, res) => {
+  try {
+    const meta = await refreshLunch();
+    res.json({ meta });
+  } catch (err) {
+    logger.error('lunch', '갱신 실패', { error: err.message });
+    const cached = await getLunchMeta();
+    if (cached) {
+      res.json({ meta: cached, stale: true, error: err.message });
+    } else {
+      res.status(502).json({ error: err.message });
+    }
+  }
+});
+
+app.get('/api/lunch/image', async (_req, res) => {
+  try {
+    await stat(LUNCH_IMAGE_FILE);
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.set('Content-Type', 'image/jpeg');
+    createReadStream(LUNCH_IMAGE_FILE).pipe(res);
+  } catch {
+    res.status(404).json({ error: '이미지가 아직 다운로드되지 않았습니다.' });
   }
 });
 

@@ -24,6 +24,7 @@ import {
   setupSettingsDialog,
   setComputersContainer,
 } from './js/computers.js';
+import { onEnterLunchTab, setupLunchRefreshButton } from './js/lunch.js';
 
 const POLL_INTERVAL_MS = 5000;
 const VERSION_POLL_MS = 10000;
@@ -44,6 +45,8 @@ function setupTabs() {
       panels.forEach((p) => p.classList.toggle('is-active', p.dataset.panel === target));
       if (target === 'computers') {
         onEnterComputersTab();
+      } else if (target === 'lunch') {
+        onEnterLunchTab();
       }
     });
   });
@@ -100,6 +103,7 @@ setupUpdateBanner();
 setupSettingsDialog();
 setupAuthForm();
 setupLogout();
+setupLunchRefreshButton();
 setupAddToggle({
   buttonId: 'add-toggle',
   formId: 'add-form',
