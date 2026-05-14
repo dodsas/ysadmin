@@ -506,6 +506,7 @@ main {
   color: var(--muted);
   font-size: 13px;
   margin-bottom: 8px;
+  white-space: pre-line;
 }
 
 .lunch-image-wrap {

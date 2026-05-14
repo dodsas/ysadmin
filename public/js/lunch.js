@@ -22,14 +22,14 @@ export async function refreshLunch(force = false) {
   inFlight = (async () => {
     try {
       const { meta, stale, error } = await api(`/api/lunch${force ? '?force=1' : ''}`);
-      const parts = [];
-      if (meta.name) parts.push(meta.name);
-      if (meta.price) parts.push(formatPrice(meta.price));
-      if (meta.description) parts.push(meta.description);
-      parts.push(`갱신: ${formatTime(meta.fetchedAt)}`);
-      if (meta.fromCache) parts.push('(오늘 캐시)');
-      if (stale) parts.push(`(캐시 — 갱신 실패: ${error})`);
-      metaEl.textContent = parts.join(' · ');
+      const info = [];
+      if (meta.name) info.push(meta.name);
+      if (meta.price) info.push(formatPrice(meta.price));
+      if (meta.description) info.push(meta.description);
+      const tail = [`갱신: ${formatTime(meta.fetchedAt)}`];
+      if (meta.fromCache) tail.push('(오늘 캐시)');
+      if (stale) tail.push(`(캐시 — 갱신 실패: ${error})`);
+      metaEl.textContent = [info.join(' · '), tail.join(' · ')].filter(Boolean).join('\n');
       imgEl.src = `/api/lunch/image?t=${encodeURIComponent(meta.fetchedAt)}`;
     } catch (err) {
       metaEl.textContent = `오류: ${err.message}`;
