@@ -648,18 +648,15 @@ main {
   }
   .target,
   .target.computer {
-    grid-template-columns: 22px 14px 1fr;
-    gap: 4px 10px;
+    grid-template-columns: 24px 1fr;
+    grid-template-rows: auto auto;
+    gap: 6px 10px;
     padding: 10px 12px;
     align-items: center;
   }
-  .drag-handle {
-    grid-row: 1 / -1;
-    padding: 0;
-  }
   .target-status {
-    grid-column: 2;
-    grid-row: 1 / -1;
+    grid-column: 1;
+    grid-row: 1;
     gap: 0;
     justify-content: center;
     align-self: center;
@@ -667,13 +664,20 @@ main {
   .target-status .status-label {
     display: none;
   }
+  .drag-handle {
+    grid-column: 1;
+    grid-row: 2;
+    padding: 0;
+    justify-content: center;
+    align-self: center;
+  }
   .target-info {
-    grid-column: 3;
+    grid-column: 2;
     grid-row: 1;
     min-width: 0;
   }
   .target-actions {
-    grid-column: 3;
+    grid-column: 2;
     grid-row: 2;
     justify-content: flex-end;
     flex-wrap: wrap;
