@@ -242,6 +242,15 @@ const computersCtx = {
   refresh: () => refreshComputers(),
 };
 
+const WAKE_WINDOW_MS = 120000;
+const activePolls = new Set();
+
+function isWaking(computer) {
+  if (computer.lastStatus === 'up') return false;
+  if (!computer.lastWakeAt) return false;
+  return Date.now() - new Date(computer.lastWakeAt).getTime() < WAKE_WINDOW_MS;
+}
+
 function computerStatusLabel(s) {
   if (s === 'up') return '켜짐';
   if (s === 'down') return '꺼짐';
@@ -253,10 +262,16 @@ function renderComputer(computer) {
   const node = tpl.content.firstElementChild.cloneNode(true);
   node.dataset.id = computer.id;
 
-  const statusEl = $('[data-status]', node);
   const lastStatus = computer.lastStatus || 'unknown';
-  statusEl.dataset.status = lastStatus;
-  $('.status-label', statusEl).textContent = computerStatusLabel(lastStatus);
+  const waking = isWaking(computer);
+  const statusEl = $('[data-status]', node);
+  if (waking) {
+    statusEl.dataset.status = 'unknown';
+    $('.status-label', statusEl).textContent = '깨우는 중';
+  } else {
+    statusEl.dataset.status = lastStatus;
+    $('.status-label', statusEl).textContent = computerStatusLabel(lastStatus);
+  }
 
   $('[data-label]', node).textContent = computer.label || computer.mac;
   const ipDisplay = computer.ip || computer.lastSeenIp;
@@ -266,24 +281,31 @@ function renderComputer(computer) {
   if (computer.lastStatusAt) metaParts.push(`상태확인: ${formatTimestamp(computer.lastStatusAt)}`);
   $('[data-meta]', node).textContent = metaParts.join(' · ');
 
+  const wakeBtn = $('[data-action="wake"]', node);
+  const statusBtn = $('[data-action="status"]', node);
+  if (lastStatus === 'up') {
+    wakeBtn.textContent = '✓ 켜짐';
+    wakeBtn.disabled = true;
+  } else if (waking) {
+    wakeBtn.textContent = '켜는 중...';
+    wakeBtn.disabled = true;
+    statusBtn.disabled = true;
+  } else {
+    wakeBtn.textContent = '전원 켜기';
+    wakeBtn.disabled = false;
+  }
+
   $('[data-action="wake"]', node).addEventListener('click', async (e) => {
     const btn = e.currentTarget;
-    const original = btn.textContent;
     btn.disabled = true;
     btn.textContent = '전송 중...';
     try {
       await api(`/api/computers/${computer.id}/wake`, { method: 'POST' });
-      btn.textContent = '✓ 전송됨';
-      setTimeout(() => {
-        btn.textContent = original;
-        btn.disabled = false;
-      }, 1500);
-      pollComputerStatus(computer.id, 12, 5000);
       await refreshComputers();
+      pollComputerStatus(computer.id, 24, 5000);
     } catch (err) {
       alert(err.message);
-      btn.textContent = original;
-      btn.disabled = false;
+      await refreshComputers();
     }
   });
 
@@ -319,15 +341,21 @@ function renderComputer(computer) {
 }
 
 async function pollComputerStatus(id, attempts, intervalMs) {
-  for (let i = 0; i < attempts; i++) {
-    await new Promise((r) => setTimeout(r, intervalMs));
-    try {
-      const { status } = await api(`/api/computers/${id}/status`);
-      await refreshComputers().catch(() => {});
-      if (status.up) return;
-    } catch {
-      /* keep polling */
+  if (activePolls.has(id)) return;
+  activePolls.add(id);
+  try {
+    for (let i = 0; i < attempts; i++) {
+      await new Promise((r) => setTimeout(r, intervalMs));
+      try {
+        const { status } = await api(`/api/computers/${id}/status`);
+        await refreshComputers().catch(() => {});
+        if (status.up) return;
+      } catch {
+        /* keep polling */
+      }
     }
+  } finally {
+    activePolls.delete(id);
   }
 }
 
@@ -343,7 +371,13 @@ async function refreshComputers() {
     container.appendChild(empty);
     return;
   }
-  computers.forEach((c) => container.appendChild(renderComputer(c)));
+  computers.forEach((c) => {
+    container.appendChild(renderComputer(c));
+    // 새로고침 후에도 "켜는 중" 상태면 폴링 자동 재개
+    if (isWaking(c) && !activePolls.has(c.id)) {
+      pollComputerStatus(c.id, 24, 5000);
+    }
+  });
 }
 
 function setupAddComputerForm() {
