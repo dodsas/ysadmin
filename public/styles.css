@@ -563,6 +563,10 @@ main {
   font-size: 13px;
 }
 
+.auth-form label[hidden] {
+  display: none;
+}
+
 .auth-form label.checkbox {
   flex-direction: row;
   align-items: center;
