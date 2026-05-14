@@ -25,6 +25,11 @@ import {
   setComputersContainer,
 } from './js/computers.js';
 import { onEnterLunchTab, setupLunchRefreshButton } from './js/lunch.js';
+import {
+  initTabOrder,
+  setupTabDragAndDrop,
+  pollTabOrder,
+} from './js/tabs.js';
 
 const POLL_INTERVAL_MS = 5000;
 const VERSION_POLL_MS = 10000;
@@ -74,6 +79,7 @@ function setupAddToggle({ buttonId, formId, openLabel, closeLabel }) {
 }
 
 async function onAuthenticated() {
+  await initTabOrder();
   await Promise.allSettled([refreshTargets(), refreshComputers(), checkVersion()]);
   onEnterComputersTab();
   if (pollersStarted) return;
@@ -82,6 +88,7 @@ async function onAuthenticated() {
     if (!isAuthenticated()) return;
     refreshTargets().catch((err) => console.error(err));
     refreshComputers().catch((err) => console.error(err));
+    pollTabOrder().catch((err) => console.error(err));
   }, POLL_INTERVAL_MS);
   setInterval(() => {
     if (!isAuthenticated()) return;
@@ -104,6 +111,7 @@ setupSettingsDialog();
 setupAuthForm();
 setupLogout();
 setupLunchRefreshButton();
+setupTabDragAndDrop();
 setupAddToggle({
   buttonId: 'add-toggle',
   formId: 'add-form',

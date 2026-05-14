@@ -150,6 +150,15 @@ body.has-update {
   border-bottom-color: var(--primary);
 }
 
+.tab.is-dragging {
+  opacity: 0.4;
+}
+
+.tab.is-drop-target {
+  background: rgba(76, 141, 255, 0.12);
+  border-bottom-color: var(--primary);
+}
+
 main {
   max-width: 960px;
   margin: 0 auto;

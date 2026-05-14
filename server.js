@@ -6,6 +6,7 @@ import { stat } from 'node:fs/promises';
 import { listTargets, addTarget, removeTarget, getTarget, reorderTargets } from './lib/store.js';
 import { startScheduler, checkTarget } from './lib/pinger.js';
 import { refreshLunch, getLunchMeta, getOrRefreshLunch, LUNCH_IMAGE_FILE } from './lib/lunch.js';
+import { getTabOrder, setTabOrder } from './lib/tabs.js';
 import {
   listComputers,
   addComputer,
@@ -297,6 +298,24 @@ app.get('/api/lunch/image', async (_req, res) => {
     createReadStream(LUNCH_IMAGE_FILE).pipe(res);
   } catch {
     res.status(404).json({ error: '이미지가 아직 다운로드되지 않았습니다.' });
+  }
+});
+
+app.get('/api/tabs/order', async (_req, res) => {
+  try {
+    const order = await getTabOrder();
+    res.json({ order });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/tabs/order', async (req, res) => {
+  try {
+    const order = await setTabOrder(req.body?.order);
+    res.json({ order });
+  } catch (err) {
+    res.status(err.status || 400).json({ error: err.message });
   }
 });
 
