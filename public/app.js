@@ -19,8 +19,24 @@ function setupTabs() {
         t.setAttribute('aria-selected', String(active));
       });
       panels.forEach((p) => p.classList.toggle('is-active', p.dataset.panel === target));
+      if (target === 'computers') {
+        onEnterComputersTab();
+      }
     });
   });
+}
+
+async function onEnterComputersTab() {
+  try {
+    const result = await api('/api/computers/check-all', { method: 'POST' });
+    // 서버가 실제로 시작했으면 결과 반영을 위해 잠시 뒤 리프레시
+    if (result && result.ok) {
+      setTimeout(() => refreshComputers().catch(() => {}), 3000);
+      setTimeout(() => refreshComputers().catch(() => {}), 10000);
+    }
+  } catch {
+    /* ignore */
+  }
 }
 
 async function api(path, options = {}) {
@@ -226,19 +242,29 @@ const computersCtx = {
   refresh: () => refreshComputers(),
 };
 
+function computerStatusLabel(s) {
+  if (s === 'up') return '켜짐';
+  if (s === 'down') return '꺼짐';
+  return '미확인';
+}
+
 function renderComputer(computer) {
   const tpl = $('#computer-row');
   const node = tpl.content.firstElementChild.cloneNode(true);
   node.dataset.id = computer.id;
 
   const statusEl = $('[data-status]', node);
-  statusEl.dataset.status = 'unknown';
-  $('.status-label', statusEl).textContent = '미확인';
+  const lastStatus = computer.lastStatus || 'unknown';
+  statusEl.dataset.status = lastStatus;
+  $('.status-label', statusEl).textContent = computerStatusLabel(lastStatus);
 
   $('[data-label]', node).textContent = computer.label || computer.mac;
-  $('[data-mac]', node).textContent = computer.mac + (computer.ip ? ` · ${computer.ip}` : '');
+  const ipDisplay = computer.ip || computer.lastSeenIp;
+  $('[data-mac]', node).textContent = computer.mac + (ipDisplay ? ` · ${ipDisplay}` : '');
 
-  $('[data-meta]', node).textContent = `마지막 부팅 시도: ${formatTimestamp(computer.lastWakeAt)}`;
+  const metaParts = [`마지막 부팅 시도: ${formatTimestamp(computer.lastWakeAt)}`];
+  if (computer.lastStatusAt) metaParts.push(`상태확인: ${formatTimestamp(computer.lastStatusAt)}`);
+  $('[data-meta]', node).textContent = metaParts.join(' · ');
 
   $('[data-action="wake"]', node).addEventListener('click', async (e) => {
     const btn = e.currentTarget;
@@ -252,7 +278,7 @@ function renderComputer(computer) {
         btn.textContent = original;
         btn.disabled = false;
       }, 1500);
-      pollComputerStatus(node, computer.id, 12, 5000);
+      pollComputerStatus(computer.id, 12, 5000);
       await refreshComputers();
     } catch (err) {
       alert(err.message);
@@ -267,8 +293,8 @@ function renderComputer(computer) {
     btn.disabled = true;
     btn.textContent = '확인 중...';
     try {
-      const { status } = await api(`/api/computers/${computer.id}/status`);
-      applyStatusToNode(node, status);
+      await api(`/api/computers/${computer.id}/status`);
+      await refreshComputers();
     } catch (err) {
       alert(err.message);
     } finally {
@@ -292,23 +318,12 @@ function renderComputer(computer) {
   return node;
 }
 
-function applyStatusToNode(node, status) {
-  const statusEl = $('[data-status]', node);
-  if (status.up) {
-    statusEl.dataset.status = 'up';
-    $('.status-label', statusEl).textContent = '켜짐';
-  } else {
-    statusEl.dataset.status = 'down';
-    $('.status-label', statusEl).textContent = '꺼짐';
-  }
-}
-
-async function pollComputerStatus(node, id, attempts, intervalMs) {
+async function pollComputerStatus(id, attempts, intervalMs) {
   for (let i = 0; i < attempts; i++) {
     await new Promise((r) => setTimeout(r, intervalMs));
     try {
       const { status } = await api(`/api/computers/${id}/status`);
-      applyStatusToNode(node, status);
+      await refreshComputers().catch(() => {});
       if (status.up) return;
     } catch {
       /* keep polling */
@@ -419,6 +434,7 @@ checkVersion().catch((err) => console.error(err));
 
 setInterval(() => {
   refreshTargets().catch((err) => console.error(err));
+  refreshComputers().catch((err) => console.error(err));
 }, POLL_INTERVAL_MS);
 
 setInterval(() => {

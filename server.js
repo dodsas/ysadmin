@@ -11,10 +11,12 @@ import {
   markWoken,
   reorderComputers,
   updateComputer,
+  recordStatus,
 } from './lib/computers.js';
 import { sendMagicPacket } from './lib/wol.js';
 import { checkComputerStatus } from './lib/lan.js';
 import { logger } from './lib/logger.js';
+import { startComputerPoller, triggerCheckAll } from './lib/computer-poller.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 6666);
@@ -114,10 +116,16 @@ app.get('/api/computers/:id/status', async (req, res) => {
   if (!computer) return res.status(404).json({ error: '컴퓨터를 찾을 수 없습니다.' });
   try {
     const status = await checkComputerStatus({ mac: computer.mac, ip: computer.ip });
-    res.json({ status });
+    const updated = await recordStatus(computer.id, status);
+    res.json({ status, computer: updated });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+app.post('/api/computers/check-all', async (_req, res) => {
+  const result = await triggerCheckAll('tab-entry');
+  res.json(result);
 });
 
 app.patch('/api/computers/:id', async (req, res) => {
@@ -145,4 +153,5 @@ app.listen(PORT, () => {
   logger.info('server', `시작`, { port: PORT, version: VERSION });
   console.log(`[server] listening on http://localhost:${PORT} (version=${VERSION})`);
   startScheduler();
+  startComputerPoller();
 });
