@@ -406,6 +406,7 @@ function openSettingsDialog(computer) {
   form.shutdownEnabled.checked = Boolean(s.enabled);
   form.sshUser.value = s.sshUser || '';
   form.sshPort.value = s.sshPort || 22;
+  form.sshPassword.value = s.sshPassword || '';
   form.shutdownCommand.value = s.command || '';
   form.dataset.id = computer.id;
   dlg.showModal();
@@ -437,6 +438,7 @@ function setupSettingsDialog() {
         enabled: form.shutdownEnabled.checked,
         sshUser: form.sshUser.value.trim() || null,
         sshPort: Number(form.sshPort.value) || 22,
+        sshPassword: form.sshPassword.value, // 그대로 (trim 없이)
         command: form.shutdownCommand.value.trim(),
       },
     };

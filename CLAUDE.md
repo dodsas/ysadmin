@@ -18,9 +18,12 @@
 
 ## SSH 끄기 기능
 
-- 컨테이너 안에 `openssh-client` 포함
-- 호스트의 `/home/dodsas/work/ysadmin/secrets/ssh_key` (passphrase 없는 개인키) 를 `/app/secrets/ssh_key:ro` 로 마운트
-- `data/computers.json` 의 각 항목 `shutdown` 필드에 sshUser/sshPort/command 저장
+- 컨테이너 안에 `openssh-client`, `sshpass` 포함
+- 두 가지 인증 방식 지원:
+  - **암호 기반** (내부망 권장): 설정 모달에서 SSH 암호 입력. `data/computers.json` 에 평문 저장됨
+  - **키 기반**: 호스트의 `secrets/ssh_key` 를 `/app/secrets/ssh_key:ro` 로 마운트
+- `data/computers.json` 의 각 항목 `shutdown` 필드: enabled / sshUser / sshPort / sshPassword / command
 - macOS/Linux 기본 명령: `sudo shutdown -h now` (sudoers `NOPASSWD` 필요)
-- Windows 기본 명령: `shutdown /s /t 0 /f` (관리자 계정 + OpenSSH 서버)
-- SSH 키 미배치 시에도 컨테이너는 정상 시작 — 끄기 호출 시에만 에러
+- Windows 기본 명령: `shutdown /s /t 0 /f` (OpenSSH 서버 + 관리자 권한 계정)
+- 실패 시 로그(`logger.error('shutdown', ...)`)에 hint 포함:
+  암호 오류 / 키 거부 / 연결 거부 / 타임아웃 등 자동 분류

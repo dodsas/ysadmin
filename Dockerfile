@@ -1,7 +1,7 @@
 FROM node:22-alpine
 
 # SSH 클라이언트(끄기 기능) + iputils-ping(상태확인). BusyBox ping 도 가능하지만 호환성 위해.
-RUN apk add --no-cache openssh-client iputils
+RUN apk add --no-cache openssh-client iputils sshpass
 
 WORKDIR /app
 

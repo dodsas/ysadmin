@@ -189,6 +189,10 @@
             <input name="sshPort" type="number" min="1" max="65535" placeholder="22" />
           </label>
           <label>
+            <span>SSH 암호 (비우면 키 인증)</span>
+            <input name="sshPassword" type="password" autocomplete="new-password" placeholder="암호 (평문 저장됨, 내부망 한정)" />
+          </label>
+          <label>
             <span>끄기 명령어</span>
             <input name="shutdownCommand" type="text" />
           </label>
