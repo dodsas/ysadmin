@@ -109,7 +109,6 @@ export function setupLogsTab() {
     refreshLogs().catch((err) => alert(err.message));
   });
   $('#logs-clear-btn').addEventListener('click', async () => {
-    if (!confirm('로그 파일과 회전된 로그(ysadmin.*.log)를 모두 삭제합니다.\n계속하시겠습니까?')) return;
     const btn = $('#logs-clear-btn');
     btn.disabled = true;
     try {
