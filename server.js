@@ -1,7 +1,7 @@
 import express from 'express';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { listTargets, addTarget, removeTarget, getTarget } from './lib/store.js';
+import { listTargets, addTarget, removeTarget, getTarget, reorderTargets } from './lib/store.js';
 import { startScheduler, checkTarget } from './lib/pinger.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -31,6 +31,16 @@ app.delete('/api/targets/:id', async (req, res) => {
   const ok = await removeTarget(req.params.id);
   if (!ok) return res.status(404).json({ error: '대상을 찾을 수 없습니다.' });
   res.status(204).end();
+});
+
+app.put('/api/targets/order', async (req, res) => {
+  try {
+    const order = req.body?.order;
+    const targets = await reorderTargets(order);
+    res.json({ targets });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 app.post('/api/targets/:id/check', async (req, res) => {

@@ -3,6 +3,9 @@ const POLL_INTERVAL_MS = 5000;
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
+let isDragging = false;
+let draggingId = null;
+
 function setupTabs() {
   const tabs = $$('.tab');
   const panels = $$('.panel');
@@ -87,10 +90,83 @@ function renderTarget(target) {
     }
   });
 
+  attachDragHandlers(node, target.id);
+
   return node;
 }
 
+function attachDragHandlers(node, id) {
+  node.addEventListener('dragstart', (e) => {
+    isDragging = true;
+    draggingId = id;
+    node.classList.add('is-dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', id);
+  });
+
+  node.addEventListener('dragend', () => {
+    isDragging = false;
+    draggingId = null;
+    node.classList.remove('is-dragging');
+    $$('.target.is-drop-target').forEach((el) => el.classList.remove('is-drop-target'));
+  });
+
+  node.addEventListener('dragover', (e) => {
+    if (!draggingId || draggingId === id) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    $$('.target.is-drop-target').forEach((el) => {
+      if (el !== node) el.classList.remove('is-drop-target');
+    });
+    node.classList.add('is-drop-target');
+  });
+
+  node.addEventListener('dragleave', (e) => {
+    if (e.currentTarget.contains(e.relatedTarget)) return;
+    node.classList.remove('is-drop-target');
+  });
+
+  node.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    node.classList.remove('is-drop-target');
+    const sourceId = e.dataTransfer.getData('text/plain') || draggingId;
+    if (!sourceId || sourceId === id) return;
+    await moveTarget(sourceId, id);
+  });
+}
+
+async function moveTarget(sourceId, targetId) {
+  const container = $('#targets');
+  const items = $$('.target', container);
+  const order = items.map((el) => el.dataset.id).filter(Boolean);
+  const fromIdx = order.indexOf(sourceId);
+  const toIdx = order.indexOf(targetId);
+  if (fromIdx === -1 || toIdx === -1) return;
+  order.splice(fromIdx, 1);
+  order.splice(toIdx, 0, sourceId);
+  reorderDom(container, order);
+  try {
+    await api('/api/targets/order', {
+      method: 'PUT',
+      body: JSON.stringify({ order }),
+    });
+  } catch (err) {
+    alert(err.message);
+    await refresh();
+  }
+}
+
+function reorderDom(container, orderedIds) {
+  const map = new Map();
+  $$('.target', container).forEach((el) => map.set(el.dataset.id, el));
+  orderedIds.forEach((id) => {
+    const el = map.get(id);
+    if (el) container.appendChild(el);
+  });
+}
+
 async function refresh() {
+  if (isDragging) return;
   const { targets } = await api('/api/targets');
   const container = $('#targets');
   container.innerHTML = '';

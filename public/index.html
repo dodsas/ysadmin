@@ -58,7 +58,22 @@
     </main>
 
     <template id="target-row">
-      <article class="target">
+      <article class="target" draggable="true">
+        <button
+          class="drag-handle"
+          type="button"
+          aria-label="드래그하여 순서 변경"
+          title="드래그하여 순서 변경"
+        >
+          <svg width="14" height="20" viewBox="0 0 14 20" aria-hidden="true">
+            <circle cx="4" cy="4" r="1.6" fill="currentColor" />
+            <circle cx="10" cy="4" r="1.6" fill="currentColor" />
+            <circle cx="4" cy="10" r="1.6" fill="currentColor" />
+            <circle cx="10" cy="10" r="1.6" fill="currentColor" />
+            <circle cx="4" cy="16" r="1.6" fill="currentColor" />
+            <circle cx="10" cy="16" r="1.6" fill="currentColor" />
+          </svg>
+        </button>
         <div class="target-status" data-status>
           <span class="dot"></span>
           <span class="status-label"></span>

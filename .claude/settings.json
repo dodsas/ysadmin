@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /Users/nam-yuseon/IdeaProjects/ysadmin || exit 0; git add -A 2>/dev/null; if git diff --cached --quiet; then exit 0; fi; names=$(git diff --cached --name-only); count=$(printf '%s\\n' \"$names\" | wc -l | tr -d ' '); preview=$(printf '%s\\n' \"$names\" | head -5 | tr '\\n' ',' | sed 's/,$//' | sed 's/,/, /g'); [ \"$count\" -gt 5 ] && preview=\"$preview, +$((count-5))\"; git commit -m \"auto: $preview\"",
+            "timeout": 60,
+            "statusMessage": "자동 커밋..."
+          }
+        ]
+      }
+    ]
+  }
+}
