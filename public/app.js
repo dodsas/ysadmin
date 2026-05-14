@@ -242,7 +242,8 @@ const computersCtx = {
   refresh: () => refreshComputers(),
 };
 
-const WAKE_WINDOW_MS = 120000;
+const WAKE_WINDOW_MS = 60000;
+const WAKE_POLL_INTERVAL_MS = 5000;
 const activePolls = new Set();
 
 function isWaking(computer) {
@@ -302,7 +303,7 @@ function renderComputer(computer) {
     try {
       await api(`/api/computers/${computer.id}/wake`, { method: 'POST' });
       await refreshComputers();
-      pollComputerStatus(computer.id, 24, 5000);
+      pollComputerStatus(computer.id, WAKE_WINDOW_MS, WAKE_POLL_INTERVAL_MS);
     } catch (err) {
       alert(err.message);
       await refreshComputers();
@@ -340,18 +341,22 @@ function renderComputer(computer) {
   return node;
 }
 
-async function pollComputerStatus(id, attempts, intervalMs) {
+// Wake 직후에만 호출. up 으로 확인되거나 maxDurationMs 경과 시 종료.
+// refresh 에서는 자동 재개하지 않음 — 사용자가 다시 wake 누르거나 상태확인 눌러야 다시 확인됨.
+async function pollComputerStatus(id, maxDurationMs, intervalMs) {
   if (activePolls.has(id)) return;
   activePolls.add(id);
+  const deadline = Date.now() + maxDurationMs;
   try {
-    for (let i = 0; i < attempts; i++) {
+    while (Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, intervalMs));
+      if (Date.now() >= deadline) break;
       try {
         const { status } = await api(`/api/computers/${id}/status`);
         await refreshComputers().catch(() => {});
         if (status.up) return;
       } catch {
-        /* keep polling */
+        /* keep polling until deadline */
       }
     }
   } finally {
@@ -371,13 +376,7 @@ async function refreshComputers() {
     container.appendChild(empty);
     return;
   }
-  computers.forEach((c) => {
-    container.appendChild(renderComputer(c));
-    // 새로고침 후에도 "켜는 중" 상태면 폴링 자동 재개
-    if (isWaking(c) && !activePolls.has(c.id)) {
-      pollComputerStatus(c.id, 24, 5000);
-    }
-  });
+  computers.forEach((c) => container.appendChild(renderComputer(c)));
 }
 
 function setupAddComputerForm() {
