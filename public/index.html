@@ -21,53 +21,17 @@
         </div>
       </div>
       <nav class="tabs" role="tablist">
-        <button class="tab is-active" role="tab" data-tab="keepalive" aria-selected="true">
-          Keep-Alive 모니터
-        </button>
-        <button class="tab" role="tab" data-tab="computers" aria-selected="false">
+        <button class="tab is-active" role="tab" data-tab="computers" aria-selected="true">
           컴퓨터관리
+        </button>
+        <button class="tab" role="tab" data-tab="keepalive" aria-selected="false">
+          Keep-Alive 모니터
         </button>
       </nav>
     </header>
 
     <main>
-      <section class="panel is-active" data-panel="keepalive">
-        <div class="panel-head">
-          <div>
-            <h2>Keep-Alive 모니터</h2>
-            <p class="panel-desc">
-              render.com 무료 인스턴스가 15분 idle로 잠드는 것을 막기 위해 등록된 URL에
-              주기적으로 GET 요청을 보냅니다. 응답이 정상이면 녹색, 실패하면 적색으로 표시됩니다.
-            </p>
-          </div>
-          <button id="refresh-btn" class="btn btn-ghost" type="button">새로고침</button>
-        </div>
-
-        <button
-          id="add-toggle"
-          class="btn btn-ghost add-toggle"
-          type="button"
-          aria-expanded="false"
-          aria-controls="add-form"
-        >+ URL 추가</button>
-        <form id="add-form" class="add-form is-collapsed-mobile" autocomplete="off">
-          <input
-            id="url-input"
-            type="text"
-            name="url"
-            placeholder="https://my-service.onrender.com"
-            required
-          />
-          <input id="label-input" type="text" name="label" placeholder="라벨 (선택)" />
-          <button class="btn btn-primary" type="submit">추가</button>
-        </form>
-
-        <div id="targets" class="targets">
-          <p class="empty">등록된 URL이 없습니다. 위 입력창에서 추가해주세요.</p>
-        </div>
-      </section>
-
-      <section class="panel" data-panel="computers">
+      <section class="panel is-active" data-panel="computers">
         <div class="panel-head">
           <div>
             <h2>컴퓨터관리</h2>
@@ -101,6 +65,42 @@
 
         <div id="computers" class="targets">
           <p class="empty">등록된 컴퓨터가 없습니다.</p>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="keepalive">
+        <div class="panel-head">
+          <div>
+            <h2>Keep-Alive 모니터</h2>
+            <p class="panel-desc">
+              render.com 무료 인스턴스가 15분 idle로 잠드는 것을 막기 위해 등록된 URL에
+              주기적으로 GET 요청을 보냅니다. 응답이 정상이면 녹색, 실패하면 적색으로 표시됩니다.
+            </p>
+          </div>
+          <button id="refresh-btn" class="btn btn-ghost" type="button">새로고침</button>
+        </div>
+
+        <button
+          id="add-toggle"
+          class="btn btn-ghost add-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="add-form"
+        >+ URL 추가</button>
+        <form id="add-form" class="add-form is-collapsed-mobile" autocomplete="off">
+          <input
+            id="url-input"
+            type="text"
+            name="url"
+            placeholder="https://my-service.onrender.com"
+            required
+          />
+          <input id="label-input" type="text" name="label" placeholder="라벨 (선택)" />
+          <button class="btn btn-primary" type="submit">추가</button>
+        </form>
+
+        <div id="targets" class="targets">
+          <p class="empty">등록된 URL이 없습니다. 위 입력창에서 추가해주세요.</p>
         </div>
       </section>
     </main>

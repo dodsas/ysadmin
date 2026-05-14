@@ -72,6 +72,7 @@ function setupAddToggle({ buttonId, formId, openLabel, closeLabel }) {
 
 async function onAuthenticated() {
   await Promise.allSettled([refreshTargets(), refreshComputers(), checkVersion()]);
+  onEnterComputersTab();
   if (pollersStarted) return;
   pollersStarted = true;
   setInterval(() => {
