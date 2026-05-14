@@ -26,6 +26,7 @@ import {
 import { sendMagicPacket } from './lib/wol.js';
 import { checkComputerStatus } from './lib/lan.js';
 import { logger } from './lib/logger.js';
+import { readRecentLogs } from './lib/log-reader.js';
 import { startComputerPoller, triggerCheckAll } from './lib/computer-poller.js';
 import { shutdownComputer } from './lib/shutdown.js';
 import {
@@ -198,6 +199,16 @@ app.patch('/api/targets/:id', async (req, res) => {
     res.json({ target: updated });
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+app.get('/api/logs', async (req, res) => {
+  try {
+    const limit = req.query.limit ? Number(req.query.limit) : 200;
+    const entries = await readRecentLogs({ limit });
+    res.json({ entries });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

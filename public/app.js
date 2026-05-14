@@ -32,6 +32,10 @@ import {
   setupLunchImageDialog,
 } from './js/lunch.js';
 import {
+  onEnterLogsTab,
+  setupLogsTab,
+} from './js/logs.js';
+import {
   initTabOrder,
   setupTabDragAndDrop,
   pollTabOrder,
@@ -58,6 +62,8 @@ function setupTabs() {
         onEnterComputersTab();
       } else if (target === 'lunch') {
         onEnterLunchTab();
+      } else if (target === 'logs') {
+        onEnterLogsTab().catch((err) => console.error(err));
       }
     });
   });
@@ -116,6 +122,7 @@ setupUpdateBanner();
 setupSettingsDialog();
 setupTargetSettingsDialog();
 setupTargetFrameDialog();
+setupLogsTab();
 setupAuthForm();
 setupLogout();
 setupLunchRefreshButton();

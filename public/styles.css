@@ -674,6 +674,107 @@ main {
   color: var(--text);
 }
 
+.logs-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.logs-limit {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.logs-list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  max-height: calc(100vh - 240px);
+  overflow: auto;
+}
+
+.log-row {
+  display: grid;
+  grid-template-columns: 150px 56px 130px 1fr;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px dashed transparent;
+  align-items: baseline;
+}
+
+.log-row:hover {
+  background: var(--surface-2);
+}
+
+.log-ts {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.log-lvl {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-align: center;
+  border-radius: 4px;
+  padding: 1px 4px;
+}
+
+.log-level-info .log-lvl { color: #7fb6ff; background: rgba(76,141,255,0.12); }
+.log-level-warn .log-lvl { color: #ffc14d; background: rgba(255,193,77,0.14); }
+.log-level-error .log-lvl { color: var(--danger); background: rgba(239,77,77,0.14); }
+.log-level-debug .log-lvl { color: var(--muted); background: rgba(139,147,167,0.12); }
+.log-level-raw .log-lvl { color: var(--muted); }
+
+.log-src {
+  color: #9aa4bc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.log-msg {
+  color: var(--text);
+  word-break: break-word;
+}
+
+.log-extra {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 11px;
+  padding-left: 8px;
+  border-left: 2px solid var(--border);
+  margin-left: 2px;
+  word-break: break-all;
+}
+
+@media (max-width: 720px) {
+  .log-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: baseline;
+  }
+  .log-ts, .log-lvl, .log-src { flex: 0 0 auto; }
+  .log-lvl { text-align: left; padding: 0 6px; }
+  .log-msg { flex: 1 1 100%; }
+  .log-extra { flex: 1 1 100%; }
+  .logs-list { max-height: calc(100vh - 220px); padding: 8px; }
+}
+
 .target-frame-dialog {
   width: 100vw;
   height: 100vh;

@@ -33,6 +33,9 @@
         <button class="tab" role="tab" data-tab="keepalive" aria-selected="false">
           Keep-Alive 모니터
         </button>
+        <button class="tab" role="tab" data-tab="logs" aria-selected="false">
+          로그
+        </button>
         <button
           id="logout-link"
           class="tabbar-action"
@@ -141,6 +144,30 @@
 
         <div id="targets" class="targets">
           <p class="empty">등록된 URL이 없습니다. 위 입력창에서 추가해주세요.</p>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="logs">
+        <div class="panel-head">
+          <div>
+            <h2>로그</h2>
+            <p class="panel-desc">
+              <code>logs/ysadmin.log</code> 의 최근 항목을 최신 순으로 표시합니다.
+            </p>
+          </div>
+          <div class="logs-actions">
+            <select id="logs-limit" class="logs-limit" title="표시 개수">
+              <option value="100">100줄</option>
+              <option value="200" selected>200줄</option>
+              <option value="500">500줄</option>
+              <option value="1000">1000줄</option>
+            </select>
+            <button id="logs-copy-btn" class="btn btn-ghost" type="button" title="전체 복사">복사</button>
+            <button id="logs-refresh-btn" class="btn btn-ghost" type="button">새로고침</button>
+          </div>
+        </div>
+        <div id="logs-list" class="logs-list">
+          <p class="empty">로그 탭으로 들어오면 불러옵니다.</p>
         </div>
       </section>
 
