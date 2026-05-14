@@ -527,8 +527,6 @@ main {
   width: 100%;
   height: auto;
   margin: 0 auto;
-  image-rendering: -webkit-optimize-contrast;
-  filter: url(#lunch-sharpen) contrast(1.03) saturate(1.06);
 }
 
 @media (max-width: 720px) {
