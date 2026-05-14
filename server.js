@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
-import { listTargets, addTarget, removeTarget, getTarget, reorderTargets } from './lib/store.js';
+import { listTargets, addTarget, removeTarget, getTarget, reorderTargets, updateTarget } from './lib/store.js';
 import { startScheduler, checkTarget } from './lib/pinger.js';
 import {
   refreshLunch,
@@ -39,7 +39,7 @@ import {
 } from './lib/auth.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PORT = Number(process.env.PORT ?? 6666);
+const PORT = Number(process.env.PORT ?? 5566);
 const VERSION = process.env.IMAGE_TAG || `dev-${Date.now()}`;
 const SESSION_COOKIE = 'ys_session';
 
@@ -189,6 +189,33 @@ app.post('/api/targets/:id/check', async (req, res) => {
   if (!target) return res.status(404).json({ error: '대상을 찾을 수 없습니다.' });
   const updated = await checkTarget(target);
   res.json({ target: updated });
+});
+
+app.patch('/api/targets/:id', async (req, res) => {
+  try {
+    const updated = await updateTarget(req.params.id, req.body || {});
+    if (!updated) return res.status(404).json({ error: '대상을 찾을 수 없습니다.' });
+    res.json({ target: updated });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.get('/api/targets/:id/go', async (req, res) => {
+  const target = await getTarget(req.params.id);
+  if (!target) return res.status(404).send('대상을 찾을 수 없습니다.');
+  const { basicAuth, url } = target;
+  if (!basicAuth || !basicAuth.username) {
+    return res.redirect(302, url);
+  }
+  try {
+    const u = new URL(url);
+    u.username = basicAuth.username;
+    u.password = basicAuth.password || '';
+    return res.redirect(302, u.toString());
+  } catch {
+    return res.redirect(302, url);
+  }
 });
 
 app.get('/api/computers', async (_req, res) => {

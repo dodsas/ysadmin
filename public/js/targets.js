@@ -23,7 +23,22 @@ function renderTarget(target) {
   $('[data-label]', node).textContent = target.label || target.url;
   const urlEl = $('[data-url]', node);
   urlEl.textContent = target.url;
-  urlEl.href = target.url;
+  urlEl.href = `/api/targets/${target.id}/go`;
+  if (isStandalone()) {
+    urlEl.removeAttribute('target');
+  } else {
+    urlEl.setAttribute('target', '_blank');
+  }
+  if (target.basicAuth && target.basicAuth.username) {
+    urlEl.title = `자동 로그인: ${target.basicAuth.username}`;
+  } else {
+    urlEl.title = '';
+  }
+  urlEl.addEventListener('click', (e) => {
+    if (!isStandalone()) return;
+    e.preventDefault();
+    openTargetFrame(target);
+  });
 
   const metaParts = [];
   metaParts.push(`마지막 체크: ${formatTimestamp(target.lastCheckedAt)}`);
@@ -39,6 +54,10 @@ function renderTarget(target) {
     } catch (err) {
       alert(err.message);
     }
+  });
+
+  $('[data-action="settings"]', node).addEventListener('click', () => {
+    openTargetSettingsDialog(target);
   });
 
   $('[data-action="delete"]', node).addEventListener('click', async () => {
@@ -96,5 +115,84 @@ export function setupAddForm() {
 export function setupRefreshButton() {
   $('#refresh-btn').addEventListener('click', () => {
     refreshTargets().catch((err) => alert(err.message));
+  });
+}
+
+function isStandalone() {
+  if (typeof window === 'undefined') return false;
+  if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
+  if (window.navigator && window.navigator.standalone === true) return true;
+  return false;
+}
+
+function openTargetFrame(target) {
+  const dlg = $('#target-frame-dialog');
+  const iframe = $('[data-frame]', dlg);
+  const title = $('[data-frame-title]', dlg);
+  const goUrl = `/api/targets/${target.id}/go`;
+  title.textContent = target.label || target.url;
+  iframe.src = goUrl;
+  if (typeof dlg.showModal === 'function') {
+    dlg.showModal();
+  } else {
+    dlg.setAttribute('open', '');
+  }
+}
+
+export function setupTargetFrameDialog() {
+  const dlg = $('#target-frame-dialog');
+  if (!dlg) return;
+  const iframe = $('[data-frame]', dlg);
+  const back = $('[data-frame-back]', dlg);
+  const external = $('[data-frame-external]', dlg);
+
+  const close = () => {
+    iframe.src = 'about:blank';
+    if (dlg.open) dlg.close();
+  };
+
+  back.addEventListener('click', close);
+  dlg.addEventListener('cancel', (e) => {
+    e.preventDefault();
+    close();
+  });
+  external.addEventListener('click', () => {
+    const url = iframe.src;
+    close();
+    window.open(url, '_blank', 'noreferrer');
+  });
+}
+
+function openTargetSettingsDialog(target) {
+  const dlg = $('#target-settings-dialog');
+  const form = $('#target-settings-form');
+  form.label.value = target.label || '';
+  const ba = target.basicAuth || {};
+  form.basicUser.value = ba.username || '';
+  form.basicPassword.value = ba.password || '';
+  form.dataset.id = target.id;
+  dlg.showModal();
+}
+
+export function setupTargetSettingsDialog() {
+  const dlg = $('#target-settings-dialog');
+  const form = $('#target-settings-form');
+  form.querySelector('[data-dialog-cancel]').addEventListener('click', () => dlg.close());
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = form.dataset.id;
+    if (!id) return;
+    const username = form.basicUser.value.trim();
+    const body = {
+      label: form.label.value.trim(),
+      basicAuth: username ? { username, password: form.basicPassword.value } : null,
+    };
+    try {
+      await api(`/api/targets/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+      dlg.close();
+      await refreshTargets();
+    } catch (err) {
+      alert(err.message);
+    }
   });
 }

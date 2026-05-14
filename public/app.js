@@ -15,6 +15,8 @@ import {
   setupAddForm,
   setupRefreshButton,
   setTargetsContainer,
+  setupTargetSettingsDialog,
+  setupTargetFrameDialog,
 } from './js/targets.js';
 import {
   refreshComputers,
@@ -112,6 +114,8 @@ setupAddComputerForm();
 setupRefreshComputersButton();
 setupUpdateBanner();
 setupSettingsDialog();
+setupTargetSettingsDialog();
+setupTargetFrameDialog();
 setupAuthForm();
 setupLogout();
 setupLunchRefreshButton();

@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(curl -s http://localhost:3000/styles.css)"
+      "Bash(curl -s http://localhost:3000/styles.css)",
+      "Bash(lsof -ti:3000)",
+      "Bash(netstat -ano)"
     ]
   }
 }
