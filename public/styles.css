@@ -649,38 +649,51 @@ main {
   .target,
   .target.computer {
     grid-template-columns: 22px auto 1fr;
-    grid-template-rows: auto auto;
-    gap: 4px 8px;
+    gap: 2px 8px;
     padding: 10px 12px;
+  }
+  .target-info {
+    display: contents;
   }
   .drag-handle {
     grid-column: 1;
     grid-row: 1;
-    padding: 2px 0 0;
+    padding: 0;
     justify-content: center;
-    align-self: start;
+    align-self: center;
   }
   .target-status {
     grid-column: 2;
     grid-row: 1;
     gap: 0;
-    align-self: start;
-    padding-top: 5px;
+    align-self: center;
   }
   .target-status .status-label {
     display: none;
   }
-  .target-info {
+  .target-label {
     grid-column: 3;
     grid-row: 1;
+    margin: 0;
+    align-self: center;
     min-width: 0;
+  }
+  .target-url {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .target-meta {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    margin-top: 2px;
+    font-size: 11px;
   }
   .target-actions {
     grid-column: 1 / -1;
-    grid-row: 2;
+    grid-row: 4;
     justify-content: flex-end;
     flex-wrap: wrap;
-    margin-top: 4px;
+    margin-top: 6px;
   }
   .target-actions .btn {
     padding: 6px 10px;
