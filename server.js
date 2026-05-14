@@ -5,7 +5,7 @@ import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { listTargets, addTarget, removeTarget, getTarget, reorderTargets } from './lib/store.js';
 import { startScheduler, checkTarget } from './lib/pinger.js';
-import { refreshLunch, getLunchMeta, LUNCH_IMAGE_FILE } from './lib/lunch.js';
+import { refreshLunch, getLunchMeta, getOrRefreshLunch, LUNCH_IMAGE_FILE } from './lib/lunch.js';
 import {
   listComputers,
   addComputer,
@@ -273,9 +273,10 @@ app.post('/api/computers/:id/shutdown', async (req, res) => {
   }
 });
 
-app.get('/api/lunch', async (_req, res) => {
+app.get('/api/lunch', async (req, res) => {
+  const force = req.query.force === '1' || req.query.force === 'true';
   try {
-    const meta = await refreshLunch();
+    const meta = await getOrRefreshLunch({ force });
     res.json({ meta });
   } catch (err) {
     logger.error('lunch', '갱신 실패', { error: err.message });

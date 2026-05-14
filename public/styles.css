@@ -513,13 +513,13 @@ main {
   justify-content: center;
   align-items: center;
   background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
   box-shadow: var(--shadow);
-  width: 100vw;
-  margin-left: calc(50% - 50vw);
-  margin-right: calc(50% - 50vw);
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
   overflow: hidden;
+  width: calc(100vw - 48px);
+  margin-left: calc(-50vw + 50% + 24px);
+  margin-right: calc(-50vw + 50% + 24px);
 }
 
 .lunch-image-wrap img {
@@ -532,6 +532,11 @@ main {
 }
 
 @media (max-width: 720px) {
+  .lunch-image-wrap {
+    width: auto;
+    margin-left: 0;
+    margin-right: 0;
+  }
   .lunch-image-wrap img {
     width: auto;
     max-width: 100%;

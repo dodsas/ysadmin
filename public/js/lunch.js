@@ -13,20 +13,21 @@ function formatTime(iso) {
 
 let inFlight = null;
 
-export async function refreshLunch() {
+export async function refreshLunch(force = false) {
   if (inFlight) return inFlight;
   const metaEl = $('#lunch-meta');
   const imgEl = $('#lunch-image');
-  metaEl.textContent = '갱신 중...';
-  imgEl.removeAttribute('src');
+  metaEl.textContent = force ? '강제 갱신 중...' : '불러오는 중...';
+  if (force) imgEl.removeAttribute('src');
   inFlight = (async () => {
     try {
-      const { meta, stale, error } = await api('/api/lunch');
+      const { meta, stale, error } = await api(`/api/lunch${force ? '?force=1' : ''}`);
       const parts = [];
       if (meta.name) parts.push(meta.name);
       if (meta.price) parts.push(formatPrice(meta.price));
       if (meta.description) parts.push(meta.description);
       parts.push(`갱신: ${formatTime(meta.fetchedAt)}`);
+      if (meta.fromCache) parts.push('(오늘 캐시)');
       if (stale) parts.push(`(캐시 — 갱신 실패: ${error})`);
       metaEl.textContent = parts.join(' · ');
       imgEl.src = `/api/lunch/image?t=${encodeURIComponent(meta.fetchedAt)}`;
@@ -43,10 +44,10 @@ export async function refreshLunch() {
 
 export function setupLunchRefreshButton() {
   $('#lunch-refresh-btn').addEventListener('click', () => {
-    refreshLunch().catch((err) => alert(err.message));
+    refreshLunch(true).catch((err) => alert(err.message));
   });
 }
 
 export async function onEnterLunchTab() {
-  await refreshLunch();
+  await refreshLunch(false);
 }
