@@ -47,6 +47,19 @@ function renderMeta(metaEl, imgEl, meta, opts = {}) {
   if (opts.stale) tail.push(`(캐시 — 갱신 실패: ${opts.error})`);
   metaEl.textContent = [info.join(' · '), tail.join(' · ')].filter(Boolean).join('\n');
   imgEl.src = `/api/lunch/image?t=${encodeURIComponent(meta.fetchedAt)}`;
+
+  const ocrWrap = $('#lunch-ocr');
+  const ocrText = $('#lunch-ocr-text');
+  if (ocrWrap && ocrText) {
+    const text = (meta.extractedText || '').trim();
+    if (text) {
+      ocrText.textContent = text;
+      ocrWrap.hidden = false;
+    } else {
+      ocrText.textContent = '';
+      ocrWrap.hidden = true;
+    }
+  }
 }
 
 let inFlight = null;

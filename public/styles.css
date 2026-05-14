@@ -539,6 +539,32 @@ main {
   margin: 0 auto;
 }
 
+.lunch-ocr {
+  margin-top: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  box-shadow: var(--shadow);
+}
+
+.lunch-ocr-label {
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+}
+
+.lunch-ocr-text {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text);
+}
+
 @media (max-width: 720px) {
   .lunch-image-wrap {
     width: auto;
