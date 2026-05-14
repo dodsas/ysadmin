@@ -524,9 +524,7 @@ main {
 
 .lunch-image-wrap img {
   display: block;
-  max-width: 100%;
-  max-height: calc(100vh - 180px);
-  width: auto;
+  width: 100%;
   height: auto;
   margin: 0 auto;
   image-rendering: -webkit-optimize-contrast;
@@ -535,6 +533,8 @@ main {
 
 @media (max-width: 720px) {
   .lunch-image-wrap img {
+    width: auto;
+    max-width: 100%;
     max-height: calc(100vh - 130px);
   }
 }
