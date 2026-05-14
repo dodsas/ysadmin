@@ -19,6 +19,7 @@ pipeline {
   environment {
     APP_NAME = 'ysadmin'
     SSH_CRED = 'ysadmin-deploy-ssh'
+    SSH_PORT = '22311'
   }
 
   triggers {
@@ -65,9 +66,9 @@ pipeline {
               sh '''
                 set -e
                 SSH_OPTS="-i ${SSH_KEY} -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/dev/null"
-                ssh ${SSH_OPTS} ${DEPLOY_USER}@${DEPLOY_HOST} "mkdir -p ${REMOTE_DIR}"
-                scp ${SSH_OPTS} ${APP_NAME}.tar.gz ${DEPLOY_USER}@${DEPLOY_HOST}:${REMOTE_DIR}/
-                ssh ${SSH_OPTS} ${DEPLOY_USER}@${DEPLOY_HOST} "
+                ssh -p ${SSH_PORT} ${SSH_OPTS} ${DEPLOY_USER}@${DEPLOY_HOST} "mkdir -p ${REMOTE_DIR}"
+                scp -P ${SSH_PORT} ${SSH_OPTS} ${APP_NAME}.tar.gz ${DEPLOY_USER}@${DEPLOY_HOST}:${REMOTE_DIR}/
+                ssh -p ${SSH_PORT} ${SSH_OPTS} ${DEPLOY_USER}@${DEPLOY_HOST} "
                   set -e
                   cd ${REMOTE_DIR}
                   tar -xzf ${APP_NAME}.tar.gz
@@ -85,7 +86,7 @@ pipeline {
               sh '''
                 set -e
                 SSH_OPTS="-i ${SSH_KEY} -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/dev/null"
-                ssh ${SSH_OPTS} ${DEPLOY_USER}@${DEPLOY_HOST} "
+                ssh -p ${SSH_PORT} ${SSH_OPTS} ${DEPLOY_USER}@${DEPLOY_HOST} "
                   export APP_NAME=${APP_NAME}
                   export APP_DIR=${REMOTE_DIR}
                   export HOST_PORT=${HOST_PORT}
@@ -104,7 +105,7 @@ pipeline {
               sh '''
                 set -e
                 SSH_OPTS="-i ${SSH_KEY} -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/dev/null"
-                ssh ${SSH_OPTS} ${DEPLOY_USER}@${DEPLOY_HOST} "
+                ssh -p ${SSH_PORT} ${SSH_OPTS} ${DEPLOY_USER}@${DEPLOY_HOST} "
                   curl -fsS http://127.0.0.1:${HOST_PORT}/api/health
                 "
               '''
