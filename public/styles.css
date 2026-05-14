@@ -505,24 +505,38 @@ main {
 .lunch-meta {
   color: var(--muted);
   font-size: 13px;
-  margin-bottom: 14px;
+  margin-bottom: 8px;
 }
 
 .lunch-image-wrap {
   display: flex;
   justify-content: center;
+  align-items: center;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 12px;
   box-shadow: var(--shadow);
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
 }
 
 .lunch-image-wrap img {
-  max-width: 100%;
-  max-height: 80vh;
-  border-radius: 6px;
   display: block;
+  max-width: 100%;
+  max-height: calc(100vh - 180px);
+  width: auto;
+  height: auto;
+  margin: 0 auto;
+  image-rendering: -webkit-optimize-contrast;
+  filter: url(#lunch-sharpen) contrast(1.05) saturate(1.06);
+}
+
+@media (max-width: 720px) {
+  .lunch-image-wrap img {
+    max-height: calc(100vh - 130px);
+  }
 }
 
 .placeholder {

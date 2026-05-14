@@ -8,6 +8,15 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
+    <svg width="0" height="0" style="position: absolute; pointer-events: none;" aria-hidden="true">
+      <filter id="lunch-sharpen" x="0" y="0" width="100%" height="100%">
+        <feConvolveMatrix
+          order="3"
+          preserveAlpha="true"
+          kernelMatrix="0 -1 0 -1 5 -1 0 -1 0"
+        />
+      </filter>
+    </svg>
     <div id="update-banner" class="update-banner" hidden>
       <span class="update-banner-text">새로운 업데이트가 있습니다. 페이지를 새로고침 해주세요.</span>
       <button id="update-banner-reload" class="btn btn-primary" type="button">새로고침</button>
