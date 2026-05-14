@@ -90,6 +90,32 @@ main {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: none;
   }
+  /* 다이나믹 아일랜드/스테이터스바 만큼만 비워두고 탭은 바로 아래에. 16px 추가 패딩 빼서 탭이 더 안 내려가게 */
+  .app-header {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+.app-footer {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0 8px;
+  margin-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.app-footer[hidden] {
+  display: none;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.btn-sm:hover {
+  opacity: 1;
 }
 
 .update-banner {
@@ -152,37 +178,6 @@ body.has-update {
   position: sticky;
   top: 0;
   z-index: 10;
-}
-
-.app-header-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-  gap: 16px;
-}
-
-.app-header h1 {
-  margin: 0;
-  font-size: 18px;
-  letter-spacing: 0.02em;
-}
-
-.user-menu {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  color: var(--muted);
-}
-
-.user-menu[hidden] {
-  display: none;
-}
-
-.user-menu-name {
-  font-weight: 600;
-  color: var(--text);
 }
 
 .tabs {

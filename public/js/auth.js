@@ -99,13 +99,16 @@ export function hideAuthOverlay() {
 }
 
 export function showUserMenu(username) {
-  const menu = $('#user-menu');
-  $('#user-menu-name').textContent = username;
-  menu.hidden = false;
+  // 헤더 사용자명/로그아웃 row 는 PWA 화면 절약을 위해 제거됨.
+  // 호환을 위해 함수만 유지하고, 푸터의 로그아웃 영역을 노출한다.
+  void username;
+  const footer = document.getElementById('app-footer');
+  if (footer) footer.hidden = false;
 }
 
 export function hideUserMenu() {
-  $('#user-menu').hidden = true;
+  const footer = document.getElementById('app-footer');
+  if (footer) footer.hidden = true;
 }
 
 function setAuthError(message) {
@@ -173,7 +176,9 @@ export function setupAuthForm() {
 }
 
 export function setupLogout() {
-  $('#logout-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('logout-link');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
     } catch {

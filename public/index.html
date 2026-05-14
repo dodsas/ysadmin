@@ -23,13 +23,6 @@
       <button id="update-banner-dismiss" class="btn btn-ghost" type="button" aria-label="닫기">✕</button>
     </div>
     <header class="app-header">
-      <div class="app-header-top">
-        <h1>ysadmin</h1>
-        <div id="user-menu" class="user-menu" hidden>
-          <span class="user-menu-name" id="user-menu-name"></span>
-          <button id="logout-btn" class="btn btn-ghost" type="button">로그아웃</button>
-        </div>
-      </div>
       <nav class="tabs" role="tablist">
         <button class="tab is-active" role="tab" data-tab="computers" aria-selected="true">
           컴퓨터관리
@@ -136,6 +129,10 @@
           <p class="empty">등록된 URL이 없습니다. 위 입력창에서 추가해주세요.</p>
         </div>
       </section>
+
+      <footer class="app-footer" id="app-footer" hidden>
+        <button id="logout-link" class="btn btn-ghost btn-sm" type="button">로그아웃</button>
+      </footer>
     </main>
 
     <template id="target-row">
