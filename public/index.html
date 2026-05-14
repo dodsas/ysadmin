@@ -146,11 +146,59 @@
         </div>
         <div class="target-actions">
           <button class="btn btn-primary" data-action="wake" type="button">전원 켜기</button>
+          <button class="btn btn-warn" data-action="shutdown" type="button">끄기</button>
           <button class="btn btn-ghost" data-action="status" type="button">상태확인</button>
+          <button class="btn btn-ghost" data-action="settings" type="button" title="설정">⚙</button>
           <button class="btn btn-danger" data-action="delete" type="button">삭제</button>
         </div>
       </article>
     </template>
+
+    <dialog id="computer-settings-dialog" class="settings-dialog">
+      <form id="computer-settings-form" method="dialog">
+        <h3>컴퓨터 설정</h3>
+        <label>
+          <span>라벨</span>
+          <input name="label" type="text" required />
+        </label>
+        <label>
+          <span>LAN IP (상태확인용)</span>
+          <input name="ip" type="text" placeholder="예: 192.168.0.10" />
+        </label>
+        <label>
+          <span>OS</span>
+          <select name="os">
+            <option value="windows">Windows</option>
+            <option value="macos">macOS</option>
+            <option value="linux">Linux</option>
+            <option value="unknown">기타</option>
+          </select>
+        </label>
+        <fieldset>
+          <legend>SSH 끄기 설정</legend>
+          <label class="checkbox">
+            <input name="shutdownEnabled" type="checkbox" />
+            <span>활성화</span>
+          </label>
+          <label>
+            <span>SSH 사용자</span>
+            <input name="sshUser" type="text" placeholder="예: dodsas / Administrator" />
+          </label>
+          <label>
+            <span>SSH 포트</span>
+            <input name="sshPort" type="number" min="1" max="65535" placeholder="22" />
+          </label>
+          <label>
+            <span>끄기 명령어</span>
+            <input name="shutdownCommand" type="text" />
+          </label>
+        </fieldset>
+        <div class="dialog-actions">
+          <button type="button" data-dialog-cancel>취소</button>
+          <button type="submit" class="btn btn-primary">저장</button>
+        </div>
+      </form>
+    </dialog>
 
     <script src="/app.js" type="module"></script>
   </body>

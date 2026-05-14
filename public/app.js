@@ -244,7 +244,9 @@ const computersCtx = {
 
 const WAKE_WINDOW_MS = 60000;
 const WAKE_POLL_INTERVAL_MS = 5000;
+const SHUTDOWN_WINDOW_MS = 60000;
 const activePolls = new Set();
+const activeShutdowns = new Set();
 
 function isWaking(computer) {
   if (computer.lastStatus === 'up') return false;
@@ -284,16 +286,31 @@ function renderComputer(computer) {
 
   const wakeBtn = $('[data-action="wake"]', node);
   const statusBtn = $('[data-action="status"]', node);
-  if (lastStatus === 'up') {
+  const shutdownBtn = $('[data-action="shutdown"]', node);
+  const shuttingDown = activeShutdowns.has(computer.id);
+
+  if (shuttingDown) {
+    wakeBtn.textContent = '전원 켜기';
+    wakeBtn.disabled = true;
+    shutdownBtn.textContent = '끄는 중...';
+    shutdownBtn.disabled = true;
+    statusBtn.disabled = true;
+  } else if (lastStatus === 'up') {
     wakeBtn.textContent = '✓ 켜짐';
     wakeBtn.disabled = true;
+    shutdownBtn.disabled = !(computer.shutdown && computer.shutdown.enabled);
+    if (!shutdownBtn.disabled) shutdownBtn.title = '';
+    else shutdownBtn.title = '설정에서 SSH 끄기 활성화 필요';
   } else if (waking) {
     wakeBtn.textContent = '켜는 중...';
     wakeBtn.disabled = true;
     statusBtn.disabled = true;
+    shutdownBtn.disabled = true;
   } else {
     wakeBtn.textContent = '전원 켜기';
     wakeBtn.disabled = false;
+    shutdownBtn.disabled = true; // 꺼져있을 땐 끄기 불가
+    shutdownBtn.title = '컴퓨터가 켜져있을 때만 끌 수 있습니다';
   }
 
   $('[data-action="wake"]', node).addEventListener('click', async (e) => {
@@ -308,6 +325,24 @@ function renderComputer(computer) {
       alert(err.message);
       await refreshComputers();
     }
+  });
+
+  $('[data-action="shutdown"]', node).addEventListener('click', async () => {
+    if (!confirm(`${computer.label} 을(를) 끕니다.\n\n계속하시겠습니까?`)) return;
+    activeShutdowns.add(computer.id);
+    await refreshComputers();
+    try {
+      await api(`/api/computers/${computer.id}/shutdown`, { method: 'POST' });
+      pollShutdownStatus(computer.id, SHUTDOWN_WINDOW_MS, WAKE_POLL_INTERVAL_MS);
+    } catch (err) {
+      alert(err.message);
+      activeShutdowns.delete(computer.id);
+      await refreshComputers();
+    }
+  });
+
+  $('[data-action="settings"]', node).addEventListener('click', () => {
+    openSettingsDialog(computer);
   });
 
   $('[data-action="status"]', node).addEventListener('click', async (e) => {
@@ -339,6 +374,80 @@ function renderComputer(computer) {
   attachDragHandlers(node, computer.id, computersCtx);
 
   return node;
+}
+
+async function pollShutdownStatus(id, maxDurationMs, intervalMs) {
+  const deadline = Date.now() + maxDurationMs;
+  try {
+    while (Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, intervalMs));
+      if (Date.now() >= deadline) break;
+      try {
+        const { status } = await api(`/api/computers/${id}/status`);
+        await refreshComputers().catch(() => {});
+        if (!status.up) return;
+      } catch {
+        /* keep polling */
+      }
+    }
+  } finally {
+    activeShutdowns.delete(id);
+    refreshComputers().catch(() => {});
+  }
+}
+
+function openSettingsDialog(computer) {
+  const dlg = $('#computer-settings-dialog');
+  const form = $('#computer-settings-form');
+  form.label.value = computer.label || '';
+  form.ip.value = computer.ip || '';
+  form.os.value = computer.os || 'unknown';
+  const s = computer.shutdown || {};
+  form.shutdownEnabled.checked = Boolean(s.enabled);
+  form.sshUser.value = s.sshUser || '';
+  form.sshPort.value = s.sshPort || 22;
+  form.shutdownCommand.value = s.command || '';
+  form.dataset.id = computer.id;
+  dlg.showModal();
+}
+
+function setupSettingsDialog() {
+  const dlg = $('#computer-settings-dialog');
+  const form = $('#computer-settings-form');
+  form.querySelector('[data-dialog-cancel]').addEventListener('click', () => dlg.close());
+
+  // OS 변경 시 명령어 자동 채워넣기 (사용자가 비워둔 경우만)
+  form.os.addEventListener('change', () => {
+    const current = form.shutdownCommand.value.trim();
+    if (!current || current === 'shutdown /s /t 0 /f' || current === 'sudo shutdown -h now') {
+      form.shutdownCommand.value =
+        form.os.value === 'windows' ? 'shutdown /s /t 0 /f' : 'sudo shutdown -h now';
+    }
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = form.dataset.id;
+    if (!id) return;
+    const body = {
+      label: form.label.value.trim(),
+      ip: form.ip.value.trim() || null,
+      os: form.os.value,
+      shutdown: {
+        enabled: form.shutdownEnabled.checked,
+        sshUser: form.sshUser.value.trim() || null,
+        sshPort: Number(form.sshPort.value) || 22,
+        command: form.shutdownCommand.value.trim(),
+      },
+    };
+    try {
+      await api(`/api/computers/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+      dlg.close();
+      await refreshComputers();
+    } catch (err) {
+      alert(err.message);
+    }
+  });
 }
 
 // Wake 직후에만 호출. up 으로 확인되거나 maxDurationMs 경과 시 종료.
@@ -484,6 +593,7 @@ setupRefreshButton();
 setupAddComputerForm();
 setupRefreshComputersButton();
 setupUpdateBanner();
+setupSettingsDialog();
 
 refreshTargets().catch((err) => console.error(err));
 refreshComputers().catch((err) => console.error(err));

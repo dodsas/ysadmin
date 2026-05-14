@@ -14,11 +14,15 @@ services:
     volumes:
       - ysadmin-data:/app/data:Z
       - ./logs:/app/logs:Z
+      # SSH 키 — 끄기 기능용. 호스트의 키 파일을 read-only 로 마운트.
+      # 파일이 없어도 컨테이너는 시작됨 (끄기 호출 시에만 에러). 키 만들기 전엔 끄기 비활성화로 유지.
+      - ./secrets/ssh_key:/app/secrets/ssh_key:ro,Z
     environment:
       PORT: ${HOST_PORT:-6666}
       PING_INTERVAL_MS: ${PING_INTERVAL_MS:-600000}
       WOL_BROADCAST: ${WOL_BROADCAST:-255.255.255.255}
       LOG_DIR: /app/logs
+      SSH_KEY_PATH: /app/secrets/ssh_key
       IMAGE_TAG: ${IMAGE_TAG:-latest}
       NODE_ENV: production
     healthcheck:

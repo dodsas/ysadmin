@@ -17,6 +17,7 @@ import { sendMagicPacket } from './lib/wol.js';
 import { checkComputerStatus } from './lib/lan.js';
 import { logger } from './lib/logger.js';
 import { startComputerPoller, triggerCheckAll } from './lib/computer-poller.js';
+import { shutdownComputer } from './lib/shutdown.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 6666);
@@ -133,9 +134,22 @@ app.patch('/api/computers/:id', async (req, res) => {
     const updated = await updateComputer(req.params.id, {
       label: req.body?.label,
       ip: req.body?.ip,
+      os: req.body?.os,
+      shutdown: req.body?.shutdown,
     });
     if (!updated) return res.status(404).json({ error: '컴퓨터를 찾을 수 없습니다.' });
     res.json({ computer: updated });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post('/api/computers/:id/shutdown', async (req, res) => {
+  const computer = await getComputer(req.params.id);
+  if (!computer) return res.status(404).json({ error: '컴퓨터를 찾을 수 없습니다.' });
+  try {
+    const result = await shutdownComputer(computer);
+    res.json(result);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
