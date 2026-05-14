@@ -11,7 +11,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd /Users/nam-yuseon/IdeaProjects/ysadmin || exit 0; git add -A 2>/dev/null; if ! git diff --cached --quiet; then names=$(git diff --cached --name-only); count=$(printf '%s\\n' \"$names\" | wc -l | tr -d ' '); preview=$(printf '%s\\n' \"$names\" | head -5 | tr '\\n' ',' | sed 's/,$//' | sed 's/,/, /g'); [ \"$count\" -gt 5 ] && preview=\"$preview, +$((count-5))\"; git commit -m \"auto: $preview\"; fi; git push 2>/dev/null || true",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" || exit 0; git add -A 2>/dev/null; if ! git diff --cached --quiet; then names=$(git diff --cached --name-only); count=$(printf '%s\\n' \"$names\" | wc -l | tr -d ' '); preview=$(printf '%s\\n' \"$names\" | head -5 | tr '\\n' ',' | sed 's/,$//' | sed 's/,/, /g'); [ \"$count\" -gt 5 ] && preview=\"$preview, +$((count-5))\"; git commit -m \"auto: $preview\"; fi; git push 2>/dev/null || true",
             "timeout": 60,
             "statusMessage": "자동 커밋 + 푸시..."
           }
