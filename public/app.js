@@ -629,12 +629,41 @@ function setupUpdateBanner() {
 
 let authState = { initialized: false, authenticated: false, username: null };
 let pollersStarted = false;
+let setupWatchTimer = null;
+const SETUP_WATCH_INTERVAL_MS = 3000;
 
 async function fetchAuthState() {
   const res = await fetch('/api/auth/state', { credentials: 'same-origin' });
   if (!res.ok) throw new Error(`auth state ${res.status}`);
   authState = await res.json();
   return authState;
+}
+
+function startSetupWatch() {
+  stopSetupWatch();
+  setupWatchTimer = setInterval(async () => {
+    try {
+      const state = await fetchAuthState();
+      if (state.authenticated) {
+        stopSetupWatch();
+        hideAuthOverlay();
+        showUserMenu(state.username);
+        await onAuthenticated();
+      } else if (state.initialized) {
+        stopSetupWatch();
+        showAuthOverlay('login');
+      }
+    } catch {
+      /* 일시적 네트워크 오류는 무시 */
+    }
+  }, SETUP_WATCH_INTERVAL_MS);
+}
+
+function stopSetupWatch() {
+  if (setupWatchTimer) {
+    clearInterval(setupWatchTimer);
+    setupWatchTimer = null;
+  }
 }
 
 function showAuthOverlay(mode) {
@@ -670,11 +699,17 @@ function showAuthOverlay(mode) {
   overlay.hidden = false;
   document.body.classList.add('is-auth-blocked');
   setTimeout(() => $('#auth-username').focus(), 0);
+  if (mode === 'setup') {
+    startSetupWatch();
+  } else {
+    stopSetupWatch();
+  }
 }
 
 function hideAuthOverlay() {
   $('#auth-overlay').hidden = true;
   document.body.classList.remove('is-auth-blocked');
+  stopSetupWatch();
 }
 
 function showUserMenu(username) {
@@ -731,6 +766,12 @@ function setupAuthForm() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        if (res.status === 409 && mode === 'setup') {
+          // 다른 클라이언트가 먼저 초기 설정을 끝낸 상황 — 로그인 모드로 전환
+          showAuthOverlay('login');
+          setAuthError('이미 다른 곳에서 초기 설정이 완료되었습니다. 로그인해주세요.');
+          return;
+        }
         setAuthError(data.error || '요청 실패');
         return;
       }
