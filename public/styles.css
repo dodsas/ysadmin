@@ -670,6 +670,17 @@ main {
   max-width: 92vw;
   max-height: 92vh;
   object-fit: contain;
+  /* 핀치/팬 직접 처리: 브라우저 기본 제스처 무력화 */
+  touch-action: none;
+  -webkit-user-drag: none;
+  user-select: none;
+  transform-origin: center center;
+  will-change: transform;
+  cursor: zoom-in;
+}
+
+.lunch-image-dialog img:active {
+  cursor: grabbing;
 }
 
 .lunch-image-dialog-close {
