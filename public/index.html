@@ -90,12 +90,12 @@
         </div>
         <div class="lunch-meta" id="lunch-meta">불러오는 중...</div>
         <div class="lunch-image-wrap">
-          <img id="lunch-image" alt="점심 메뉴 사진" />
+          <img id="lunch-image" alt="점심 메뉴 사진 (클릭 시 확대)" title="클릭하여 크게 보기" />
         </div>
-        <div id="lunch-ocr" class="lunch-ocr" hidden>
-          <div class="lunch-ocr-label">AI 추출 (Tesseract OCR · 참고용)</div>
+        <details id="lunch-ocr" class="lunch-ocr" hidden>
+          <summary class="lunch-ocr-label">AI 추출 (Tesseract OCR · 참고용)</summary>
           <pre id="lunch-ocr-text" class="lunch-ocr-text"></pre>
-        </div>
+        </details>
       </section>
 
       <section class="panel" data-panel="keepalive">
@@ -202,6 +202,11 @@
         </div>
       </article>
     </template>
+
+    <dialog id="lunch-image-dialog" class="lunch-image-dialog">
+      <button type="button" class="lunch-image-dialog-close" data-dialog-close aria-label="닫기">✕</button>
+      <img id="lunch-image-large" alt="점심 메뉴 사진 확대" />
+    </dialog>
 
     <dialog id="computer-settings-dialog" class="settings-dialog">
       <form id="computer-settings-form" method="dialog">

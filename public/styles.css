@@ -527,9 +527,6 @@ main {
   border-radius: 8px;
   box-shadow: var(--shadow);
   overflow: hidden;
-  width: calc(100vw - 48px);
-  margin-left: calc(-50vw + 50% + 24px);
-  margin-right: calc(-50vw + 50% + 24px);
 }
 
 .lunch-image-wrap img {
@@ -537,6 +534,7 @@ main {
   width: 100%;
   height: auto;
   margin: 0 auto;
+  cursor: zoom-in;
 }
 
 .lunch-ocr {
@@ -544,25 +542,96 @@ main {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 12px 14px;
+  padding: 0;
   box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.lunch-ocr[open] {
+  padding-bottom: 12px;
 }
 
 .lunch-ocr-label {
   color: var(--muted);
   font-size: 12px;
-  margin-bottom: 6px;
   letter-spacing: 0.02em;
+  cursor: pointer;
+  list-style: none;
+  padding: 10px 14px;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lunch-ocr-label::-webkit-details-marker {
+  display: none;
+}
+
+.lunch-ocr-label::before {
+  content: '▶';
+  font-size: 10px;
+  transition: transform 0.15s;
+  color: var(--muted);
+}
+
+.lunch-ocr[open] .lunch-ocr-label::before {
+  transform: rotate(90deg);
 }
 
 .lunch-ocr-text {
   margin: 0;
+  padding: 0 14px;
   white-space: pre-wrap;
   word-break: break-word;
   font-family: inherit;
   font-size: 14px;
   line-height: 1.55;
   color: var(--text);
+}
+
+.lunch-image-dialog {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0;
+  max-width: 92vw;
+  max-height: 92vh;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+
+.lunch-image-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.lunch-image-dialog img {
+  display: block;
+  max-width: 92vw;
+  max-height: 92vh;
+  object-fit: contain;
+}
+
+.lunch-image-dialog-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: 0;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.lunch-image-dialog-close:hover {
+  background: rgba(0, 0, 0, 0.75);
 }
 
 @media (max-width: 720px) {

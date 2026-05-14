@@ -5,7 +5,13 @@ import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { listTargets, addTarget, removeTarget, getTarget, reorderTargets } from './lib/store.js';
 import { startScheduler, checkTarget } from './lib/pinger.js';
-import { refreshLunch, getLunchMeta, getOrRefreshLunch, LUNCH_IMAGE_FILE } from './lib/lunch.js';
+import {
+  refreshLunch,
+  getLunchMeta,
+  getOrRefreshLunch,
+  startLunchScheduler,
+  LUNCH_IMAGE_FILE,
+} from './lib/lunch.js';
 import { getTabOrder, setTabOrder } from './lib/tabs.js';
 import {
   listComputers,
@@ -335,4 +341,5 @@ app.listen(PORT, () => {
   console.log(`[server] listening on http://localhost:${PORT} (version=${VERSION})`);
   startScheduler();
   startComputerPoller();
+  startLunchScheduler();
 });

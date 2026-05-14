@@ -24,7 +24,11 @@ import {
   setupSettingsDialog,
   setComputersContainer,
 } from './js/computers.js';
-import { onEnterLunchTab, setupLunchRefreshButton } from './js/lunch.js';
+import {
+  onEnterLunchTab,
+  setupLunchRefreshButton,
+  setupLunchImageDialog,
+} from './js/lunch.js';
 import {
   initTabOrder,
   setupTabDragAndDrop,
@@ -111,6 +115,7 @@ setupSettingsDialog();
 setupAuthForm();
 setupLogout();
 setupLunchRefreshButton();
+setupLunchImageDialog();
 setupTabDragAndDrop();
 setupAddToggle({
   buttonId: 'add-toggle',
