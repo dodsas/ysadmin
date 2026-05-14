@@ -32,6 +32,59 @@ body {
   line-height: 1.5;
 }
 
+.update-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(90deg, #1f3a8a, #2563eb);
+  color: white;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  animation: banner-slide-down 0.25s ease-out;
+}
+
+body.has-update {
+  padding-top: 48px;
+}
+
+.update-banner[hidden] {
+  display: none;
+}
+
+.update-banner-text {
+  flex: 1;
+  font-weight: 600;
+}
+
+.update-banner .btn-primary {
+  background: white;
+  color: #1f3a8a;
+}
+
+.update-banner .btn-primary:hover {
+  background: #e5e9f0;
+}
+
+.update-banner .btn-ghost {
+  color: white;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.update-banner .btn-ghost:hover {
+  border-color: white;
+}
+
+@keyframes banner-slide-down {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
+}
+
 .app-header {
   background: var(--surface);
   border-bottom: 1px solid var(--border);

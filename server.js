@@ -18,6 +18,7 @@ import { logger } from './lib/logger.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 6666);
+const VERSION = process.env.IMAGE_TAG || `dev-${Date.now()}`;
 
 const app = express();
 app.use(express.json());
@@ -136,8 +137,12 @@ app.get('/api/health', (_req, res) => {
   res.json({ ok: true, ts: new Date().toISOString() });
 });
 
+app.get('/api/version', (_req, res) => {
+  res.json({ version: VERSION });
+});
+
 app.listen(PORT, () => {
-  logger.info('server', `시작`, { port: PORT });
-  console.log(`[server] listening on http://localhost:${PORT}`);
+  logger.info('server', `시작`, { port: PORT, version: VERSION });
+  console.log(`[server] listening on http://localhost:${PORT} (version=${VERSION})`);
   startScheduler();
 });

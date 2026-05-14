@@ -1,4 +1,5 @@
 const POLL_INTERVAL_MS = 5000;
+const VERSION_POLL_MS = 30000;
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -364,6 +365,42 @@ function setupRefreshComputersButton() {
   });
 }
 
+// ===== 버전 갱신 감지 =====
+
+let initialVersion = null;
+let updateBannerShown = false;
+
+async function checkVersion() {
+  try {
+    const { version } = await api('/api/version');
+    if (!initialVersion) {
+      initialVersion = version;
+      return;
+    }
+    if (version !== initialVersion && !updateBannerShown) {
+      showUpdateBanner();
+    }
+  } catch {
+    /* 일시적 오류는 무시 — 다음 폴링 때 재시도 */
+  }
+}
+
+function showUpdateBanner() {
+  const banner = $('#update-banner');
+  if (!banner) return;
+  banner.hidden = false;
+  document.body.classList.add('has-update');
+  updateBannerShown = true;
+}
+
+function setupUpdateBanner() {
+  $('#update-banner-reload').addEventListener('click', () => location.reload());
+  $('#update-banner-dismiss').addEventListener('click', () => {
+    $('#update-banner').hidden = true;
+    document.body.classList.remove('has-update');
+  });
+}
+
 // ===== Bootstrap =====
 
 targetsCtx.container = $('#targets');
@@ -374,10 +411,16 @@ setupAddForm();
 setupRefreshButton();
 setupAddComputerForm();
 setupRefreshComputersButton();
+setupUpdateBanner();
 
 refreshTargets().catch((err) => console.error(err));
 refreshComputers().catch((err) => console.error(err));
+checkVersion().catch((err) => console.error(err));
 
 setInterval(() => {
   refreshTargets().catch((err) => console.error(err));
 }, POLL_INTERVAL_MS);
+
+setInterval(() => {
+  checkVersion().catch((err) => console.error(err));
+}, VERSION_POLL_MS);
