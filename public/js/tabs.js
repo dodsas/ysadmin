@@ -18,10 +18,12 @@ export function applyTabOrder(order) {
   if (!bar || !main) return;
   const tabMap = new Map($$('.tab', bar).map((t) => [t.dataset.tab, t]));
   const panelMap = new Map($$('.panel', main).map((p) => [p.dataset.panel, p]));
+  // 로그아웃 등 .tabbar-action 은 항상 탭 뒤(우측 끝)에 머물러야 하므로 탭은 그 앞에 삽입한다
+  const trailing = bar.querySelector('.tabbar-action');
   order.forEach((key) => {
     const t = tabMap.get(key);
     const p = panelMap.get(key);
-    if (t) bar.appendChild(t);
+    if (t) bar.insertBefore(t, trailing);
     if (p) main.appendChild(p);
   });
   currentOrder = order.slice();
