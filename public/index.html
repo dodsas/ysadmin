@@ -13,8 +13,13 @@
         <feConvolveMatrix
           order="3"
           preserveAlpha="true"
-          kernelMatrix="0 -1 0 -1 5 -1 0 -1 0"
+          kernelMatrix="-0.5 -1 -0.5  -1 7 -1  -0.5 -1 -0.5"
         />
+        <feComponentTransfer>
+          <feFuncR type="linear" slope="1.18" intercept="-0.08" />
+          <feFuncG type="linear" slope="1.18" intercept="-0.08" />
+          <feFuncB type="linear" slope="1.18" intercept="-0.08" />
+        </feComponentTransfer>
       </filter>
     </svg>
     <div id="update-banner" class="update-banner" hidden>
