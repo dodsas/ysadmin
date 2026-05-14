@@ -1,5 +1,5 @@
 const POLL_INTERVAL_MS = 5000;
-const VERSION_POLL_MS = 30000;
+const VERSION_POLL_MS = 10000;
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -417,19 +417,37 @@ function setupRefreshComputersButton() {
 
 let initialVersion = null;
 let updateBannerShown = false;
+let lastVersionWasDown = false;
 
 async function checkVersion() {
   try {
-    const { version } = await api('/api/version');
+    // 캐시버스터로 강제 새 요청
+    const res = await fetch(`/api/version?t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache' },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { version } = await res.json();
     if (!initialVersion) {
       initialVersion = version;
+      console.log(`[version] 초기 버전: ${version}`);
+      lastVersionWasDown = false;
       return;
     }
+    const cameBackUp = lastVersionWasDown;
+    lastVersionWasDown = false;
     if (version !== initialVersion && !updateBannerShown) {
+      console.log(`[version] 변경 감지: ${initialVersion} → ${version}`);
       showUpdateBanner();
+    } else if (cameBackUp && !updateBannerShown) {
+      // 서버가 잠시 끊겼다가 돌아옴 — 버전이 같아도 재시작했을 가능성
+      console.log(`[version] 서버 다운→업 감지 (현재 버전 ${version})`);
     }
-  } catch {
-    /* 일시적 오류는 무시 — 다음 폴링 때 재시도 */
+  } catch (err) {
+    if (!lastVersionWasDown) {
+      console.warn(`[version] 폴링 실패 (서버 재시작 중?):`, err.message);
+    }
+    lastVersionWasDown = true;
   }
 }
 
@@ -446,6 +464,12 @@ function setupUpdateBanner() {
   $('#update-banner-dismiss').addEventListener('click', () => {
     $('#update-banner').hidden = true;
     document.body.classList.remove('has-update');
+  });
+  // 탭이 다시 활성화되면 즉시 1회 체크 (백그라운드에서 setInterval throttled 됐을 수 있음)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      checkVersion().catch(() => {});
+    }
   });
 }
 
