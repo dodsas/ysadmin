@@ -17,6 +17,7 @@
 
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html,
@@ -30,6 +31,65 @@ body {
     sans-serif;
   font-size: 14px;
   line-height: 1.5;
+  overscroll-behavior: none;
+}
+
+html {
+  height: 100%;
+  /* iOS 주소창 변화에 따른 흔들림 방지 */
+  height: -webkit-fill-available;
+}
+
+body {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  /* iOS rubber-band(고무줄 스크롤) 방지 */
+  overscroll-behavior-y: none;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* 버튼/탭/헤더 같은 UI 크롬에서는 길게눌러 선택/콜아웃 방지 */
+.app-header,
+.tabs,
+.tab,
+.btn,
+.drag-handle,
+.target-actions,
+.panel-head {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* notch / 홈 인디케이터 안전영역 */
+.app-header {
+  padding-top: calc(16px + env(safe-area-inset-top));
+  padding-left: calc(24px + env(safe-area-inset-left));
+  padding-right: calc(24px + env(safe-area-inset-right));
+}
+
+main {
+  padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  padding-left: calc(24px + env(safe-area-inset-left));
+  padding-right: calc(24px + env(safe-area-inset-right));
+}
+
+.update-banner {
+  padding-top: calc(10px + env(safe-area-inset-top));
+}
+
+/* 홈화면에 추가(standalone)된 경우 PTR(아래로 당겨 새로고침) 차단을 더 강하게 */
+@media (display-mode: standalone) {
+  html,
+  body {
+    overflow: hidden;
+    height: 100%;
+  }
+  body {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: none;
+  }
 }
 
 .update-banner {
