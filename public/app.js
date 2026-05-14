@@ -50,6 +50,85 @@ function statusLabel(status) {
   }
 }
 
+function attachDragHandlers(node, id, ctx) {
+  node.addEventListener('dragstart', (e) => {
+    isDragging = true;
+    draggingId = id;
+    node.classList.add('is-dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', id);
+  });
+
+  node.addEventListener('dragend', () => {
+    isDragging = false;
+    draggingId = null;
+    node.classList.remove('is-dragging');
+    $$('.target.is-drop-target', ctx.container).forEach((el) =>
+      el.classList.remove('is-drop-target'),
+    );
+  });
+
+  node.addEventListener('dragover', (e) => {
+    if (!draggingId || draggingId === id) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    $$('.target.is-drop-target', ctx.container).forEach((el) => {
+      if (el !== node) el.classList.remove('is-drop-target');
+    });
+    node.classList.add('is-drop-target');
+  });
+
+  node.addEventListener('dragleave', (e) => {
+    if (e.currentTarget.contains(e.relatedTarget)) return;
+    node.classList.remove('is-drop-target');
+  });
+
+  node.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    node.classList.remove('is-drop-target');
+    const sourceId = e.dataTransfer.getData('text/plain') || draggingId;
+    if (!sourceId || sourceId === id) return;
+    await moveItem(sourceId, id, ctx);
+  });
+}
+
+async function moveItem(sourceId, targetId, ctx) {
+  const items = $$('.target', ctx.container);
+  const order = items.map((el) => el.dataset.id).filter(Boolean);
+  const fromIdx = order.indexOf(sourceId);
+  const toIdx = order.indexOf(targetId);
+  if (fromIdx === -1 || toIdx === -1) return;
+  order.splice(fromIdx, 1);
+  order.splice(toIdx, 0, sourceId);
+  reorderDom(ctx.container, order);
+  try {
+    await api(ctx.orderEndpoint, {
+      method: 'PUT',
+      body: JSON.stringify({ order }),
+    });
+  } catch (err) {
+    alert(err.message);
+    await ctx.refresh();
+  }
+}
+
+function reorderDom(container, orderedIds) {
+  const map = new Map();
+  $$('.target', container).forEach((el) => map.set(el.dataset.id, el));
+  orderedIds.forEach((id) => {
+    const el = map.get(id);
+    if (el) container.appendChild(el);
+  });
+}
+
+// ===== Keep-Alive targets =====
+
+const targetsCtx = {
+  container: null,
+  orderEndpoint: '/api/targets/order',
+  refresh: () => refreshTargets(),
+};
+
 function renderTarget(target) {
   const tpl = $('#target-row');
   const node = tpl.content.firstElementChild.cloneNode(true);
@@ -74,7 +153,7 @@ function renderTarget(target) {
   $('[data-action="check"]', node).addEventListener('click', async () => {
     try {
       await api(`/api/targets/${target.id}/check`, { method: 'POST' });
-      await refresh();
+      await refreshTargets();
     } catch (err) {
       alert(err.message);
     }
@@ -84,91 +163,21 @@ function renderTarget(target) {
     if (!confirm(`정말 삭제하시겠습니까?\n${target.url}`)) return;
     try {
       await api(`/api/targets/${target.id}`, { method: 'DELETE' });
-      await refresh();
+      await refreshTargets();
     } catch (err) {
       alert(err.message);
     }
   });
 
-  attachDragHandlers(node, target.id);
+  attachDragHandlers(node, target.id, targetsCtx);
 
   return node;
 }
 
-function attachDragHandlers(node, id) {
-  node.addEventListener('dragstart', (e) => {
-    isDragging = true;
-    draggingId = id;
-    node.classList.add('is-dragging');
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', id);
-  });
-
-  node.addEventListener('dragend', () => {
-    isDragging = false;
-    draggingId = null;
-    node.classList.remove('is-dragging');
-    $$('.target.is-drop-target').forEach((el) => el.classList.remove('is-drop-target'));
-  });
-
-  node.addEventListener('dragover', (e) => {
-    if (!draggingId || draggingId === id) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    $$('.target.is-drop-target').forEach((el) => {
-      if (el !== node) el.classList.remove('is-drop-target');
-    });
-    node.classList.add('is-drop-target');
-  });
-
-  node.addEventListener('dragleave', (e) => {
-    if (e.currentTarget.contains(e.relatedTarget)) return;
-    node.classList.remove('is-drop-target');
-  });
-
-  node.addEventListener('drop', async (e) => {
-    e.preventDefault();
-    node.classList.remove('is-drop-target');
-    const sourceId = e.dataTransfer.getData('text/plain') || draggingId;
-    if (!sourceId || sourceId === id) return;
-    await moveTarget(sourceId, id);
-  });
-}
-
-async function moveTarget(sourceId, targetId) {
-  const container = $('#targets');
-  const items = $$('.target', container);
-  const order = items.map((el) => el.dataset.id).filter(Boolean);
-  const fromIdx = order.indexOf(sourceId);
-  const toIdx = order.indexOf(targetId);
-  if (fromIdx === -1 || toIdx === -1) return;
-  order.splice(fromIdx, 1);
-  order.splice(toIdx, 0, sourceId);
-  reorderDom(container, order);
-  try {
-    await api('/api/targets/order', {
-      method: 'PUT',
-      body: JSON.stringify({ order }),
-    });
-  } catch (err) {
-    alert(err.message);
-    await refresh();
-  }
-}
-
-function reorderDom(container, orderedIds) {
-  const map = new Map();
-  $$('.target', container).forEach((el) => map.set(el.dataset.id, el));
-  orderedIds.forEach((id) => {
-    const el = map.get(id);
-    if (el) container.appendChild(el);
-  });
-}
-
-async function refresh() {
+async function refreshTargets() {
   if (isDragging) return;
   const { targets } = await api('/api/targets');
-  const container = $('#targets');
+  const container = targetsCtx.container;
   container.innerHTML = '';
   if (!targets.length) {
     const empty = document.createElement('p');
@@ -195,7 +204,7 @@ function setupAddForm() {
       });
       urlInput.value = '';
       labelInput.value = '';
-      await refresh();
+      await refreshTargets();
     } catch (err) {
       alert(err.message);
     }
@@ -204,14 +213,171 @@ function setupAddForm() {
 
 function setupRefreshButton() {
   $('#refresh-btn').addEventListener('click', () => {
-    refresh().catch((err) => alert(err.message));
+    refreshTargets().catch((err) => alert(err.message));
   });
 }
+
+// ===== Computers (WoL) =====
+
+const computersCtx = {
+  container: null,
+  orderEndpoint: '/api/computers/order',
+  refresh: () => refreshComputers(),
+};
+
+function renderComputer(computer) {
+  const tpl = $('#computer-row');
+  const node = tpl.content.firstElementChild.cloneNode(true);
+  node.dataset.id = computer.id;
+
+  const statusEl = $('[data-status]', node);
+  statusEl.dataset.status = 'unknown';
+  $('.status-label', statusEl).textContent = '미확인';
+
+  $('[data-label]', node).textContent = computer.label || computer.mac;
+  $('[data-mac]', node).textContent = computer.mac + (computer.ip ? ` · ${computer.ip}` : '');
+
+  $('[data-meta]', node).textContent = `마지막 부팅 시도: ${formatTimestamp(computer.lastWakeAt)}`;
+
+  $('[data-action="wake"]', node).addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '전송 중...';
+    try {
+      await api(`/api/computers/${computer.id}/wake`, { method: 'POST' });
+      btn.textContent = '✓ 전송됨';
+      setTimeout(() => {
+        btn.textContent = original;
+        btn.disabled = false;
+      }, 1500);
+      pollComputerStatus(node, computer.id, 12, 5000);
+      await refreshComputers();
+    } catch (err) {
+      alert(err.message);
+      btn.textContent = original;
+      btn.disabled = false;
+    }
+  });
+
+  $('[data-action="status"]', node).addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '확인 중...';
+    try {
+      const { status } = await api(`/api/computers/${computer.id}/status`);
+      applyStatusToNode(node, status);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      btn.textContent = original;
+      btn.disabled = false;
+    }
+  });
+
+  $('[data-action="delete"]', node).addEventListener('click', async () => {
+    if (!confirm(`정말 삭제하시겠습니까?\n${computer.label} (${computer.mac})`)) return;
+    try {
+      await api(`/api/computers/${computer.id}`, { method: 'DELETE' });
+      await refreshComputers();
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+
+  attachDragHandlers(node, computer.id, computersCtx);
+
+  return node;
+}
+
+function applyStatusToNode(node, status) {
+  const statusEl = $('[data-status]', node);
+  if (status.up) {
+    statusEl.dataset.status = 'up';
+    $('.status-label', statusEl).textContent = '켜짐';
+  } else {
+    statusEl.dataset.status = 'down';
+    $('.status-label', statusEl).textContent = '꺼짐';
+  }
+}
+
+async function pollComputerStatus(node, id, attempts, intervalMs) {
+  for (let i = 0; i < attempts; i++) {
+    await new Promise((r) => setTimeout(r, intervalMs));
+    try {
+      const { status } = await api(`/api/computers/${id}/status`);
+      applyStatusToNode(node, status);
+      if (status.up) return;
+    } catch {
+      /* keep polling */
+    }
+  }
+}
+
+async function refreshComputers() {
+  if (isDragging) return;
+  const { computers } = await api('/api/computers');
+  const container = computersCtx.container;
+  container.innerHTML = '';
+  if (!computers.length) {
+    const empty = document.createElement('p');
+    empty.className = 'empty';
+    empty.textContent = '등록된 컴퓨터가 없습니다.';
+    container.appendChild(empty);
+    return;
+  }
+  computers.forEach((c) => container.appendChild(renderComputer(c)));
+}
+
+function setupAddComputerForm() {
+  const form = $('#add-computer-form');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const macInput = $('#computer-mac-input');
+    const labelInput = $('#computer-label-input');
+    const ipInput = $('#computer-ip-input');
+    const mac = macInput.value.trim();
+    if (!mac) return;
+    try {
+      await api('/api/computers', {
+        method: 'POST',
+        body: JSON.stringify({
+          mac,
+          label: labelInput.value.trim() || undefined,
+          ip: ipInput.value.trim() || undefined,
+        }),
+      });
+      macInput.value = '';
+      labelInput.value = '';
+      ipInput.value = '';
+      await refreshComputers();
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+}
+
+function setupRefreshComputersButton() {
+  $('#refresh-computers-btn').addEventListener('click', () => {
+    refreshComputers().catch((err) => alert(err.message));
+  });
+}
+
+// ===== Bootstrap =====
+
+targetsCtx.container = $('#targets');
+computersCtx.container = $('#computers');
 
 setupTabs();
 setupAddForm();
 setupRefreshButton();
-refresh().catch((err) => console.error(err));
+setupAddComputerForm();
+setupRefreshComputersButton();
+
+refreshTargets().catch((err) => console.error(err));
+refreshComputers().catch((err) => console.error(err));
+
 setInterval(() => {
-  refresh().catch((err) => console.error(err));
+  refreshTargets().catch((err) => console.error(err));
 }, POLL_INTERVAL_MS);

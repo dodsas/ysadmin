@@ -8,16 +8,18 @@ services:
     image: localhost/ysadmin:${IMAGE_TAG:-latest}
     container_name: ysadmin
     restart: always
-    ports:
-      - "${HOST_PORT:-6666}:6666"
+    # WoL 매직 패킷(UDP 브로드캐스트)을 LAN으로 보내야 하므로 host 네트워크 사용.
+    # host 모드에서는 ports 매핑 불필요 — 컨테이너가 호스트의 HOST_PORT 에 직접 바인딩됨.
+    network_mode: host
     volumes:
       - ysadmin-data:/app/data:Z
     environment:
-      PORT: 6666
+      PORT: ${HOST_PORT:-6666}
       PING_INTERVAL_MS: ${PING_INTERVAL_MS:-600000}
+      WOL_BROADCAST: ${WOL_BROADCAST:-255.255.255.255}
       NODE_ENV: production
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:6666/api/health"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:${HOST_PORT:-6666}/api/health"]
       interval: 30s
       timeout: 5s
       retries: 3

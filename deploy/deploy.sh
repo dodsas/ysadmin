@@ -26,6 +26,7 @@ if ! command -v podman-compose >/dev/null 2>&1; then
 fi
 
 export HOST_PORT PING_INTERVAL_MS IMAGE_TAG
+export WOL_BROADCAST="${WOL_BROADCAST:-192.168.0.255}"
 
 log "이미지 태그: ${IMAGE_NAME}:${IMAGE_TAG}"
 

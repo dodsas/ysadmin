@@ -20,6 +20,7 @@ pipeline {
     APP_NAME = 'ysadmin'
     SSH_CRED = 'ysadmin-deploy-ssh'
     SSH_PORT = '22311'
+    WOL_BROADCAST = '192.168.0.255'
   }
 
   triggers {
@@ -92,6 +93,7 @@ pipeline {
                   export HOST_PORT=${HOST_PORT}
                   export PING_INTERVAL_MS=${PING_INTERVAL_MS}
                   export IMAGE_TAG=${IMAGE_TAG}
+                  export WOL_BROADCAST=${WOL_BROADCAST}
                   bash ${REMOTE_DIR}/deploy/deploy.sh
                 "
               '''
