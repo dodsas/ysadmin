@@ -13,10 +13,12 @@ services:
     network_mode: host
     volumes:
       - ysadmin-data:/app/data:Z
+      - ./logs:/app/logs:Z
     environment:
       PORT: ${HOST_PORT:-6666}
       PING_INTERVAL_MS: ${PING_INTERVAL_MS:-600000}
       WOL_BROADCAST: ${WOL_BROADCAST:-255.255.255.255}
+      LOG_DIR: /app/logs
       NODE_ENV: production
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:${HOST_PORT:-6666}/api/health"]

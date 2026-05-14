@@ -14,6 +14,7 @@ import {
 } from './lib/computers.js';
 import { sendMagicPacket } from './lib/wol.js';
 import { checkComputerStatus } from './lib/lan.js';
+import { logger } from './lib/logger.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 6666);
@@ -96,11 +97,13 @@ app.post('/api/computers/:id/wake', async (req, res) => {
   const computer = await getComputer(req.params.id);
   if (!computer) return res.status(404).json({ error: '컴퓨터를 찾을 수 없습니다.' });
   try {
+    logger.info('wol', `매직 패킷 전송 시도`, { id: computer.id, mac: computer.mac, label: computer.label });
     await sendMagicPacket(computer.mac);
     const updated = await markWoken(computer.id);
+    logger.info('wol', `매직 패킷 전송 완료`, { mac: computer.mac });
     res.json({ computer: updated });
   } catch (err) {
-    console.error('[server] WoL failed:', err);
+    logger.error('wol', `매직 패킷 전송 실패`, { mac: computer.mac, error: err.message });
     res.status(500).json({ error: `매직 패킷 전송 실패: ${err.message}` });
   }
 });
@@ -134,6 +137,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.listen(PORT, () => {
+  logger.info('server', `시작`, { port: PORT });
   console.log(`[server] listening on http://localhost:${PORT}`);
   startScheduler();
 });

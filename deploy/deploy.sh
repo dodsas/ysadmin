@@ -19,6 +19,10 @@ fi
 
 cd "$APP_DIR"
 
+# 로그 디렉터리 (compose.yml 의 ./logs 바인드 마운트 대상)
+mkdir -p "$APP_DIR/logs"
+chmod 777 "$APP_DIR/logs"  # 컨테이너 안 node 사용자가 쓸 수 있도록
+
 if ! command -v podman-compose >/dev/null 2>&1; then
   log "podman-compose 명령을 찾을 수 없습니다."
   log "설치: sudo dnf install -y podman-compose  (또는 pip install --user podman-compose)"
