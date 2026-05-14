@@ -18,14 +18,129 @@ import { checkComputerStatus } from './lib/lan.js';
 import { logger } from './lib/logger.js';
 import { startComputerPoller, triggerCheckAll } from './lib/computer-poller.js';
 import { shutdownComputer } from './lib/shutdown.js';
+import {
+  isInitialized,
+  setupCredentials,
+  verifyCredentials,
+  createSession,
+  getSession,
+  deleteSession,
+  getSessionDurationMs,
+} from './lib/auth.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 6666);
 const VERSION = process.env.IMAGE_TAG || `dev-${Date.now()}`;
+const SESSION_COOKIE = 'ys_session';
 
 const app = express();
 app.use(express.json());
 app.use(express.static(resolve(__dirname, 'public')));
+
+function parseCookies(req) {
+  const header = req.headers.cookie;
+  if (!header) return {};
+  const out = {};
+  for (const part of header.split(';')) {
+    const idx = part.indexOf('=');
+    if (idx < 0) continue;
+    const key = part.slice(0, idx).trim();
+    const val = part.slice(idx + 1).trim();
+    if (key) out[key] = decodeURIComponent(val);
+  }
+  return out;
+}
+
+function setSessionCookie(res, token, remember) {
+  const parts = [`${SESSION_COOKIE}=${token}`, 'HttpOnly', 'SameSite=Lax', 'Path=/'];
+  if (remember) {
+    parts.push(`Max-Age=${Math.floor(getSessionDurationMs() / 1000)}`);
+  }
+  res.setHeader('Set-Cookie', parts.join('; '));
+}
+
+function clearSessionCookie(res) {
+  res.setHeader(
+    'Set-Cookie',
+    `${SESSION_COOKIE}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`,
+  );
+}
+
+app.get('/api/auth/state', async (req, res) => {
+  const initialized = await isInitialized();
+  const cookies = parseCookies(req);
+  const session = await getSession(cookies[SESSION_COOKIE]);
+  res.json({
+    initialized,
+    authenticated: Boolean(session),
+    username: session ? session.username : null,
+  });
+});
+
+app.post('/api/auth/setup', async (req, res) => {
+  try {
+    if (await isInitialized()) {
+      return res.status(409).json({ error: '이미 초기 설정이 완료되어 있습니다.' });
+    }
+    const { username, password, remember } = req.body || {};
+    const { username: u } = await setupCredentials({ username, password });
+    const session = await createSession({ username: u, remember });
+    setSessionCookie(res, session.token, Boolean(remember));
+    res.status(201).json({ ok: true, username: u });
+  } catch (err) {
+    const status = err.code === 'ALREADY_INITIALIZED' ? 409 : 400;
+    res.status(status).json({ error: err.message });
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  if (!(await isInitialized())) {
+    return res.status(409).json({ error: '초기 설정이 필요합니다.' });
+  }
+  const { username, password, remember } = req.body || {};
+  const ok = await verifyCredentials({ username, password });
+  if (!ok) {
+    logger.warn('auth', '로그인 실패', { username: String(username ?? '').trim() });
+    return res.status(401).json({ error: '아이디 또는 비밀번호가 일치하지 않습니다.' });
+  }
+  const u = String(username).trim();
+  const session = await createSession({ username: u, remember });
+  setSessionCookie(res, session.token, Boolean(remember));
+  logger.info('auth', '로그인 성공', { username: u, remember: Boolean(remember) });
+  res.json({ ok: true, username: u });
+});
+
+app.post('/api/auth/logout', async (req, res) => {
+  const cookies = parseCookies(req);
+  const token = cookies[SESSION_COOKIE];
+  if (token) {
+    await deleteSession(token);
+    logger.info('auth', '로그아웃', {});
+  }
+  clearSessionCookie(res);
+  res.json({ ok: true });
+});
+
+const PUBLIC_API_PATHS = new Set([
+  '/api/auth/state',
+  '/api/auth/setup',
+  '/api/auth/login',
+  '/api/auth/logout',
+  '/api/health',
+  '/api/version',
+]);
+
+app.use(async (req, res, next) => {
+  if (!req.path.startsWith('/api/')) return next();
+  if (PUBLIC_API_PATHS.has(req.path)) return next();
+  const cookies = parseCookies(req);
+  const session = await getSession(cookies[SESSION_COOKIE]);
+  if (!session) {
+    return res.status(401).json({ error: '인증이 필요합니다.' });
+  }
+  req.session = session;
+  next();
+});
 
 app.get('/api/targets', async (_req, res) => {
   const targets = await listTargets();

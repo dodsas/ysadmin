@@ -42,8 +42,14 @@ async function onEnterComputersTab() {
 async function api(path, options = {}) {
   const res = await fetch(path, {
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
     ...options,
   });
+  if (res.status === 401 && !path.startsWith('/api/auth/')) {
+    onUnauthorized();
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || '인증이 필요합니다.');
+  }
   if (res.status === 204) return null;
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `요청 실패 (${res.status})`);
@@ -234,6 +240,27 @@ function setupRefreshButton() {
   });
 }
 
+function setupAddToggle({ buttonId, formId, openLabel, closeLabel }) {
+  const btn = document.getElementById(buttonId);
+  const form = document.getElementById(formId);
+  if (!btn || !form) return;
+  btn.textContent = openLabel;
+  btn.addEventListener('click', () => {
+    const wasCollapsed = form.classList.contains('is-collapsed-mobile');
+    if (wasCollapsed) {
+      form.classList.remove('is-collapsed-mobile');
+      btn.setAttribute('aria-expanded', 'true');
+      btn.textContent = closeLabel;
+      const firstInput = form.querySelector('input');
+      if (firstInput) firstInput.focus();
+    } else {
+      form.classList.add('is-collapsed-mobile');
+      btn.setAttribute('aria-expanded', 'false');
+      btn.textContent = openLabel;
+    }
+  });
+}
+
 // ===== Computers (WoL) =====
 
 const computersCtx = {
@@ -283,7 +310,7 @@ function renderComputer(computer) {
 
   const metaParts = [`마지막 부팅 시도: ${formatTimestamp(computer.lastWakeAt)}`];
   if (computer.lastStatusAt) metaParts.push(`상태확인: ${formatTimestamp(computer.lastStatusAt)}`);
-  $('[data-meta]', node).textContent = metaParts.join(' · ');
+  $('[data-meta]', node).textContent = metaParts.join('\n');
 
   const toggleBtn = $('[data-action="toggle"]', node);
   const statusBtn = $('[data-action="status"]', node);
@@ -297,23 +324,23 @@ function renderComputer(computer) {
   toggleBtn.dataset.mode = '';
 
   if (shuttingDown) {
-    toggleBtn.textContent = '끄는 중...';
+    toggleBtn.textContent = '끄는 중';
     toggleBtn.disabled = true;
     toggleBtn.classList.add('btn-warn');
     statusBtn.disabled = true;
   } else if (waking) {
-    toggleBtn.textContent = '켜는 중...';
+    toggleBtn.textContent = '켜는 중';
     toggleBtn.disabled = true;
     toggleBtn.classList.add('btn-primary');
     statusBtn.disabled = true;
   } else if (checking) {
-    toggleBtn.textContent = '확인 중...';
+    toggleBtn.textContent = '확인 중';
     toggleBtn.disabled = true;
     toggleBtn.classList.add('btn-primary');
     statusBtn.disabled = true;
   } else if (lastStatus === 'up') {
     if (shutdownReady) {
-      toggleBtn.textContent = '전원 끄기';
+      toggleBtn.textContent = '끄기';
       toggleBtn.disabled = false;
       toggleBtn.classList.add('btn-warn');
       toggleBtn.dataset.mode = 'shutdown';
@@ -325,7 +352,7 @@ function renderComputer(computer) {
     }
     statusBtn.disabled = false;
   } else {
-    toggleBtn.textContent = '전원 켜기';
+    toggleBtn.textContent = '켜기';
     toggleBtn.disabled = false;
     toggleBtn.classList.add('btn-primary');
     toggleBtn.dataset.mode = 'wake';
@@ -598,6 +625,155 @@ function setupUpdateBanner() {
   });
 }
 
+// ===== 인증 =====
+
+let authState = { initialized: false, authenticated: false, username: null };
+let pollersStarted = false;
+
+async function fetchAuthState() {
+  const res = await fetch('/api/auth/state', { credentials: 'same-origin' });
+  if (!res.ok) throw new Error(`auth state ${res.status}`);
+  authState = await res.json();
+  return authState;
+}
+
+function showAuthOverlay(mode) {
+  const overlay = $('#auth-overlay');
+  const title = $('#auth-title');
+  const desc = $('#auth-desc');
+  const submit = $('#auth-submit');
+  const confirmWrap = $('#auth-password-confirm-wrap');
+  const confirmInput = $('#auth-password-confirm');
+  const rememberWrap = $('#auth-remember-wrap');
+  const err = $('#auth-error');
+
+  err.hidden = true;
+  err.textContent = '';
+  $('#auth-form').reset();
+
+  if (mode === 'setup') {
+    title.textContent = '초기 설정';
+    desc.textContent = '관리자 아이디와 비밀번호를 설정해주세요. 이후 이 정보로 로그인합니다.';
+    submit.textContent = '계정 만들기';
+    confirmWrap.hidden = false;
+    confirmInput.required = true;
+    rememberWrap.style.display = '';
+  } else {
+    title.textContent = '로그인';
+    desc.textContent = '아이디와 비밀번호를 입력하세요.';
+    submit.textContent = '로그인';
+    confirmWrap.hidden = true;
+    confirmInput.required = false;
+    rememberWrap.style.display = '';
+  }
+  overlay.dataset.mode = mode;
+  overlay.hidden = false;
+  document.body.classList.add('is-auth-blocked');
+  setTimeout(() => $('#auth-username').focus(), 0);
+}
+
+function hideAuthOverlay() {
+  $('#auth-overlay').hidden = true;
+  document.body.classList.remove('is-auth-blocked');
+}
+
+function showUserMenu(username) {
+  const menu = $('#user-menu');
+  $('#user-menu-name').textContent = username;
+  menu.hidden = false;
+}
+
+function hideUserMenu() {
+  $('#user-menu').hidden = true;
+}
+
+function setAuthError(message) {
+  const err = $('#auth-error');
+  err.textContent = message;
+  err.hidden = !message;
+}
+
+function onUnauthorized() {
+  if (!authState.authenticated) return;
+  authState.authenticated = false;
+  authState.username = null;
+  hideUserMenu();
+  showAuthOverlay('login');
+}
+
+function setupAuthForm() {
+  const form = $('#auth-form');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const mode = $('#auth-overlay').dataset.mode;
+    const username = $('#auth-username').value.trim();
+    const password = $('#auth-password').value;
+    const remember = $('#auth-remember').checked;
+    setAuthError('');
+
+    if (mode === 'setup') {
+      const confirm = $('#auth-password-confirm').value;
+      if (password !== confirm) {
+        setAuthError('비밀번호가 일치하지 않습니다.');
+        return;
+      }
+    }
+
+    const submit = $('#auth-submit');
+    submit.disabled = true;
+    try {
+      const path = mode === 'setup' ? '/api/auth/setup' : '/api/auth/login';
+      const res = await fetch(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ username, password, remember }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setAuthError(data.error || '요청 실패');
+        return;
+      }
+      authState = { initialized: true, authenticated: true, username: data.username };
+      hideAuthOverlay();
+      showUserMenu(data.username);
+      await onAuthenticated();
+    } catch (err) {
+      setAuthError(err.message || '요청 실패');
+    } finally {
+      submit.disabled = false;
+    }
+  });
+}
+
+function setupLogout() {
+  $('#logout-btn').addEventListener('click', async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
+    } catch {
+      /* ignore */
+    }
+    authState = { initialized: true, authenticated: false, username: null };
+    hideUserMenu();
+    showAuthOverlay('login');
+  });
+}
+
+async function onAuthenticated() {
+  await Promise.allSettled([refreshTargets(), refreshComputers(), checkVersion()]);
+  if (pollersStarted) return;
+  pollersStarted = true;
+  setInterval(() => {
+    if (!authState.authenticated) return;
+    refreshTargets().catch((err) => console.error(err));
+    refreshComputers().catch((err) => console.error(err));
+  }, POLL_INTERVAL_MS);
+  setInterval(() => {
+    if (!authState.authenticated) return;
+    checkVersion().catch((err) => console.error(err));
+  }, VERSION_POLL_MS);
+}
+
 // ===== Bootstrap =====
 
 targetsCtx.container = $('#targets');
@@ -610,16 +786,35 @@ setupAddComputerForm();
 setupRefreshComputersButton();
 setupUpdateBanner();
 setupSettingsDialog();
+setupAuthForm();
+setupLogout();
+setupAddToggle({
+  buttonId: 'add-toggle',
+  formId: 'add-form',
+  openLabel: '+ URL 추가',
+  closeLabel: '− 닫기',
+});
+setupAddToggle({
+  buttonId: 'add-computer-toggle',
+  formId: 'add-computer-form',
+  openLabel: '+ 컴퓨터 추가',
+  closeLabel: '− 닫기',
+});
 
-refreshTargets().catch((err) => console.error(err));
-refreshComputers().catch((err) => console.error(err));
-checkVersion().catch((err) => console.error(err));
-
-setInterval(() => {
-  refreshTargets().catch((err) => console.error(err));
-  refreshComputers().catch((err) => console.error(err));
-}, POLL_INTERVAL_MS);
-
-setInterval(() => {
-  checkVersion().catch((err) => console.error(err));
-}, VERSION_POLL_MS);
+(async () => {
+  try {
+    await fetchAuthState();
+  } catch (err) {
+    console.error('[auth] state fetch failed:', err);
+    showAuthOverlay('login');
+    return;
+  }
+  if (!authState.initialized) {
+    showAuthOverlay('setup');
+  } else if (!authState.authenticated) {
+    showAuthOverlay('login');
+  } else {
+    showUserMenu(authState.username);
+    await onAuthenticated();
+  }
+})();

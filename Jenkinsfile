@@ -74,7 +74,7 @@ pipeline {
                   cd ${REMOTE_DIR}
                   tar -xzf ${APP_NAME}.tar.gz
                   rm -f ${APP_NAME}.tar.gz
-                  chmod +x deploy/deploy.sh
+                  chmod +x deploy/*.sh
                 "
               '''
             }
