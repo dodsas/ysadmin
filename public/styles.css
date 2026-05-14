@@ -643,6 +643,13 @@ main {
     padding: 10px;
     margin-bottom: 12px;
   }
+  .add-form input,
+  .auth-form input[type='text'],
+  .auth-form input[type='password'],
+  .settings-dialog input,
+  .settings-dialog select {
+    font-size: 16px;
+  }
   .targets {
     gap: 8px;
   }
