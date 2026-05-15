@@ -25,7 +25,7 @@
     <header class="app-header">
       <nav class="tabs" role="tablist">
         <button class="tab is-active" role="tab" data-tab="computers" aria-selected="true">
-          피씨
+          컴퓨터
         </button>
         <button class="tab" role="tab" data-tab="lunch" aria-selected="false">
           메뉴
@@ -35,6 +35,21 @@
         </button>
         <button class="tab" role="tab" data-tab="logs" aria-selected="false">
           로그
+        </button>
+        <button
+          id="api-keys-link"
+          class="tabbar-action"
+          type="button"
+          aria-label="API 키"
+          title="API 키"
+          hidden
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="8" cy="15" r="4"/>
+            <line x1="10.85" y1="12.15" x2="21" y2="2"/>
+            <line x1="18" y1="5" x2="21" y2="8"/>
+            <line x1="15" y1="8" x2="18" y2="11"/>
+          </svg>
         </button>
         <button
           id="logout-link"
@@ -366,6 +381,26 @@
           <button type="submit" class="btn btn-primary">저장</button>
         </div>
       </form>
+    </dialog>
+
+    <dialog id="api-keys-dialog" class="settings-dialog">
+      <div class="api-keys-panel">
+        <h3>API 키</h3>
+        <p class="dialog-hint">
+          외부 위젯/스크립트가 컴퓨터 목록 조회와 켜기/끄기를 호출할 수 있는 키입니다.
+          발급 직후 1회만 평문으로 노출됩니다 — 즉시 복사해 위젯에 저장하세요.
+          문서: <a href="/api/docs" target="_blank" rel="noreferrer">/api/docs</a>
+        </p>
+        <form id="api-key-create-form" class="api-key-create" autocomplete="off">
+          <input name="label" type="text" placeholder="라벨 (예: iPhone Widget)" required />
+          <button class="btn btn-primary" type="submit">발급</button>
+        </form>
+        <pre id="api-key-issued" class="api-key-issued" hidden></pre>
+        <ul id="api-keys-list" class="api-keys-list"></ul>
+        <div class="dialog-actions">
+          <button type="button" data-dialog-close>닫기</button>
+        </div>
+      </div>
     </dialog>
 
     <div id="auth-overlay" class="auth-overlay" hidden>

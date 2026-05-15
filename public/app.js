@@ -10,6 +10,7 @@ import {
   setOnAuthenticated,
 } from './js/auth.js';
 import { startVersionStream, setupUpdateBanner } from './js/version.js';
+import { setupApiKeysDialog } from './js/api-keys.js';
 import {
   initTabOrder,
   setupTabDragAndDrop,
@@ -86,6 +87,7 @@ setupUpdateBanner();
 startVersionStream();
 setupAuthForm();
 setupLogout();
+setupApiKeysDialog();
 setupTabDragAndDrop();
 setupAddToggle({
   buttonId: 'add-toggle',

@@ -100,13 +100,17 @@ export function hideAuthOverlay() {
 
 export function showUserMenu(username) {
   void username;
-  const btn = document.getElementById('logout-link');
-  if (btn) btn.hidden = false;
+  for (const id of ['logout-link', 'api-keys-link']) {
+    const btn = document.getElementById(id);
+    if (btn) btn.hidden = false;
+  }
 }
 
 export function hideUserMenu() {
-  const btn = document.getElementById('logout-link');
-  if (btn) btn.hidden = true;
+  for (const id of ['logout-link', 'api-keys-link']) {
+    const btn = document.getElementById(id);
+    if (btn) btn.hidden = true;
+  }
 }
 
 function setAuthError(message) {

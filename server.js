@@ -17,6 +17,7 @@ import {
   registerFeatures,
   startFeatureSchedulers,
 } from './features/index.js';
+import { listApiKeys, createApiKey, revokeApiKey } from './lib/api-keys.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 5566);
@@ -120,11 +121,17 @@ const PUBLIC_API_PATHS = new Set([
   '/api/version',
   '/api/version/stream',
   '/api/features',
+  '/api/docs',
+  '/api/v1/openapi.json',
 ]);
+
+// 세션 쿠키 대신 자체 인증을 쓰는 경로 prefix — public-api 의 Bearer 토큰.
+const SELF_AUTHED_PREFIXES = ['/api/v1/'];
 
 app.use(async (req, res, next) => {
   if (!req.path.startsWith('/api/')) return next();
   if (PUBLIC_API_PATHS.has(req.path)) return next();
+  if (SELF_AUTHED_PREFIXES.some((p) => req.path.startsWith(p))) return next();
   const cookies = parseCookies(req);
   const session = await getSession(cookies[SESSION_COOKIE]);
   if (!session) {
@@ -146,6 +153,33 @@ app.get('/api/features', (_req, res) => {
       description: f.description || '',
     })),
   });
+});
+
+app.get('/api/admin/api-keys', async (_req, res) => {
+  try {
+    const keys = await listApiKeys();
+    res.json({ keys });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/admin/api-keys', async (req, res) => {
+  try {
+    const { label, scopes } = req.body || {};
+    const { key, entry } = await createApiKey({ label, scopes });
+    logger.info('admin', 'API 키 발급', { id: entry.id, label: entry.label });
+    res.status(201).json({ key, entry });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete('/api/admin/api-keys/:id', async (req, res) => {
+  const ok = await revokeApiKey(req.params.id);
+  if (!ok) return res.status(404).json({ error: '키를 찾을 수 없습니다.' });
+  logger.info('admin', 'API 키 폐기', { id: req.params.id });
+  res.status(204).end();
 });
 
 app.get('/api/tabs/order', async (_req, res) => {

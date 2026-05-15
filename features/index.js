@@ -4,8 +4,9 @@ import { pcFeature } from './pc.js';
 import { menuFeature } from './menu.js';
 import { keepaliveFeature } from './keepalive.js';
 import { logsFeature } from './logs.js';
+import { publicApiFeature } from './public-api.js';
 
-export const features = [pcFeature, menuFeature, keepaliveFeature, logsFeature];
+export const features = [pcFeature, menuFeature, keepaliveFeature, logsFeature, publicApiFeature];
 
 export const featureIds = features.map((f) => f.id);
 

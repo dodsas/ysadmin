@@ -454,6 +454,74 @@ main {
   flex: 1;
 }
 
+.api-keys-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: min(520px, 90vw);
+}
+
+.api-key-create {
+  display: flex;
+  gap: 6px;
+}
+
+.api-key-create input {
+  flex: 1;
+}
+
+.api-key-issued {
+  background: #1a1d24;
+  border: 1px solid var(--primary);
+  color: #e9f0ff;
+  border-radius: 6px;
+  padding: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  word-break: break-all;
+  white-space: pre-wrap;
+  user-select: all;
+}
+
+.api-keys-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.api-key-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.api-key-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.api-key-label {
+  font-weight: 500;
+}
+
+.api-key-meta {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+  word-break: break-all;
+}
+
+.api-key-hint {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
 .dialog-actions button[type='button'] {
   background: transparent;
   color: var(--muted);
