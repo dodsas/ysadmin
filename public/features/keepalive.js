@@ -6,6 +6,7 @@ import {
   setTargetsContainer,
   setupTargetSettingsDialog,
   setupTargetFrameDialog,
+  setupSsoReturnHistoryTrap,
 } from '../js/targets.js';
 import { $ } from '../js/util.js';
 
@@ -20,6 +21,7 @@ export const keepaliveFeature = {
     setupRefreshButton();
     setupTargetSettingsDialog();
     setupTargetFrameDialog();
+    setupSsoReturnHistoryTrap();
   },
   onEnter: null,
   refresh: refreshTargets,

@@ -43,6 +43,9 @@ function renderTarget(target) {
     // SSO 핸드오프 후 타겟이 Set-Cookie 해도 세션이 유지되지 않음 → 로그인 화면이 다시 뜸.
     // SSO 가 켜진 항목은 PWA 창을 top-level 로 이동시켜 first-party 쿠키로 처리.
     if (target.sso && target.sso.enabled) {
+      // 복귀 후 forward history (=SSO 체인 + 외부 사이트) 가 남아 edge swipe 로
+      // 재진입되는 것을 막기 위해 플래그를 심는다. setupSsoReturnHistoryTrap 가 읽음.
+      sessionStorage.setItem(SSO_RETURN_FLAG, '1');
       window.location.href = `/api/targets/${target.id}/go`;
       return;
     }
@@ -135,6 +138,8 @@ function isStandalone() {
 }
 
 const FRAME_HISTORY_TAG = 'targetFrameDialog';
+const SSO_RETURN_FLAG = 'ysadmin:ssoReturn';
+const SSO_TRAP_TAG = 'ssoReturnTrap';
 let frameHistoryBaseLen = 0;
 let frameClosing = false;
 
@@ -247,6 +252,21 @@ export function setupTargetFrameDialog() {
     } else {
       finalize();
     }
+  });
+}
+
+// SSO 핸드오프는 PWA 창을 top-level 로 이동시켜 first-party 쿠키를 확보한다.
+// 부작용: 복귀하면 forward history (=SSO 체인 + 외부 사이트 페이지들) 가 남고,
+// iOS PWA 의 좌측 edge swipe 가 그 체인을 따라가 SSO 가 다시 실행된다.
+//
+// 대응: 클릭 직전에 세팅한 SSO_RETURN_FLAG 를 pageshow 에서 확인하고 pushState 로
+// forward 를 잘라낸다. 새 sentinel 항목이 한 칸 생기지만 forward 가 비어있어
+// 좌측 스와이프는 동작하지 않는다. 우측 스와이프는 같은 URL(/) 로 떨어져 무해.
+export function setupSsoReturnHistoryTrap() {
+  window.addEventListener('pageshow', () => {
+    if (sessionStorage.getItem(SSO_RETURN_FLAG) !== '1') return;
+    sessionStorage.removeItem(SSO_RETURN_FLAG);
+    history.pushState({ tag: SSO_TRAP_TAG }, '');
   });
 }
 
