@@ -29,8 +29,10 @@ function renderTarget(target) {
   } else {
     urlEl.setAttribute('target', '_blank');
   }
-  if (target.basicAuth && target.basicAuth.username) {
-    urlEl.title = `자동 로그인: ${target.basicAuth.username}`;
+  if (target.sso && target.sso.enabled) {
+    urlEl.title = 'SSO 자동 로그인 (토큰 핸드오프)';
+  } else if (target.basicAuth && target.basicAuth.username) {
+    urlEl.title = `Basic 자동 로그인: ${target.basicAuth.username}`;
   } else {
     urlEl.title = '';
   }
@@ -170,6 +172,12 @@ function openTargetSettingsDialog(target) {
   const ba = target.basicAuth || {};
   form.basicUser.value = ba.username || '';
   form.basicPassword.value = ba.password || '';
+  const sso = target.sso || {};
+  form.ssoEnabled.checked = Boolean(sso.enabled);
+  form.ssoSecret.value = sso.secret || '';
+  form.ssoEndpoint.value = sso.endpoint || '/sso';
+  form.ssoSubject.value = sso.subject || '';
+  form.ssoTtl.value = sso.ttlSec || 30;
   form.dataset.id = target.id;
   dlg.showModal();
 }
@@ -178,14 +186,38 @@ export function setupTargetSettingsDialog() {
   const dlg = $('#target-settings-dialog');
   const form = $('#target-settings-form');
   form.querySelector('[data-dialog-cancel]').addEventListener('click', () => dlg.close());
+  form.querySelector('[data-sso-generate]').addEventListener('click', async () => {
+    try {
+      const { secret } = await api('/api/targets/sso/secret', { method: 'POST' });
+      form.ssoSecret.value = secret;
+      form.ssoEnabled.checked = true;
+    } catch (err) {
+      alert(err.message);
+    }
+  });
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = form.dataset.id;
     if (!id) return;
     const username = form.basicUser.value.trim();
+    const ssoEnabled = form.ssoEnabled.checked;
+    const ssoSecret = form.ssoSecret.value.trim();
+    if (ssoEnabled && !ssoSecret) {
+      alert('SSO 시크릿을 입력하거나 생성 버튼을 눌러주세요.');
+      return;
+    }
     const body = {
       label: form.label.value.trim(),
       basicAuth: username ? { username, password: form.basicPassword.value } : null,
+      sso: ssoEnabled
+        ? {
+            enabled: true,
+            secret: ssoSecret,
+            endpoint: form.ssoEndpoint.value.trim() || '/sso',
+            subject: form.ssoSubject.value.trim() || null,
+            ttlSec: Number(form.ssoTtl.value) || 30,
+          }
+        : null,
     };
     try {
       await api(`/api/targets/${id}`, { method: 'PATCH', body: JSON.stringify(body) });

@@ -8,6 +8,7 @@ import {
   updateTarget,
 } from '../lib/store.js';
 import { startScheduler, checkTarget } from '../lib/pinger.js';
+import { issueSsoToken, generateSecret } from '../lib/sso.js';
 
 function register(app) {
   app.get('/api/targets', async (_req, res) => {
@@ -61,18 +62,44 @@ function register(app) {
   app.get('/api/targets/:id/go', async (req, res) => {
     const target = await getTarget(req.params.id);
     if (!target) return res.status(404).send('대상을 찾을 수 없습니다.');
-    const { basicAuth, url } = target;
-    if (!basicAuth || !basicAuth.username) {
-      return res.redirect(302, url);
+    const { basicAuth, sso, url } = target;
+
+    // 1) SSO 토큰 핸드오프 (최우선) — 대상 사이트가 /sso?token=... 받아 세션 발급.
+    if (sso && sso.enabled && sso.secret) {
+      try {
+        const token = issueSsoToken({
+          secret: sso.secret,
+          subject: sso.subject || req.session?.username || 'ysadmin',
+          audience: new URL(url).hostname,
+          ttlSec: sso.ttlSec || 30,
+          extra: { src: 'ysadmin' },
+        });
+        const target_url = new URL(sso.endpoint || '/sso', url);
+        target_url.searchParams.set('token', token);
+        return res.redirect(302, target_url.toString());
+      } catch (err) {
+        return res.status(500).send(`SSO 토큰 발급 실패: ${err.message}`);
+      }
     }
-    try {
-      const u = new URL(url);
-      u.username = basicAuth.username;
-      u.password = basicAuth.password || '';
-      return res.redirect(302, u.toString());
-    } catch {
-      return res.redirect(302, url);
+
+    // 2) HTTP Basic Auth (레거시) — 일부 브라우저는 userinfo URL 차단.
+    if (basicAuth && basicAuth.username) {
+      try {
+        const u = new URL(url);
+        u.username = basicAuth.username;
+        u.password = basicAuth.password || '';
+        return res.redirect(302, u.toString());
+      } catch {
+        return res.redirect(302, url);
+      }
     }
+
+    return res.redirect(302, url);
+  });
+
+  // SSO 시크릿 자동 생성 — UI 의 "생성" 버튼이 호출. 저장은 별도 PATCH.
+  app.post('/api/targets/sso/secret', (_req, res) => {
+    res.json({ secret: generateSecret(32) });
   });
 }
 

@@ -270,8 +270,38 @@
           <input name="label" type="text" required />
         </label>
         <fieldset>
+          <legend>SSO 핸드오프 (선택)</legend>
+          <p class="dialog-hint">
+            대상 사이트가 <code>?token=...</code> 으로 JWT 를 받아 자체 세션을 발급할 때 사용.
+            시크릿은 대상 서버 환경변수와 동일해야 합니다. HS256 / 만료시간(초) 적용.
+          </p>
+          <label class="checkbox">
+            <input name="ssoEnabled" type="checkbox" />
+            <span>활성화</span>
+          </label>
+          <label>
+            <span>시크릿 (HMAC)</span>
+            <span class="row-inline">
+              <input name="ssoSecret" type="text" autocomplete="off" placeholder="64자 hex 권장" />
+              <button type="button" class="btn btn-ghost" data-sso-generate>생성</button>
+            </span>
+          </label>
+          <label>
+            <span>엔드포인트</span>
+            <input name="ssoEndpoint" type="text" placeholder="/sso" />
+          </label>
+          <label>
+            <span>subject (선택)</span>
+            <input name="ssoSubject" type="text" placeholder="비우면 로그인 username" />
+          </label>
+          <label>
+            <span>TTL (초)</span>
+            <input name="ssoTtl" type="number" min="5" max="600" placeholder="30" />
+          </label>
+        </fieldset>
+        <fieldset>
           <legend>HTTP Basic 인증 (선택)</legend>
-          <p class="dialog-hint">대상 사이트가 401 Basic Auth를 요구할 때 자동 로그인합니다. 비우면 일반 이동.</p>
+          <p class="dialog-hint">대상 사이트가 401 Basic Auth를 요구할 때 자동 로그인. SSO 가 켜져 있으면 무시됨.</p>
           <label>
             <span>아이디</span>
             <input name="basicUser" type="text" autocomplete="off" />
