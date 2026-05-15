@@ -266,14 +266,27 @@ main:hover::-webkit-scrollbar-thumb,
   background-color: rgba(255, 255, 255, 0.22);
 }
 
-/* 터치 기기에서는 호버가 없으니 기본 스크롤바를 가려 자연스럽게 */
+/* 터치 기기(특히 iOS PWA)에서는 호버가 없고 native overlay scroll indicator 가
+   스크롤 시작 순간 잠깐 그려졌다 사라지면서 깜빡인다. width:0 만으로는 iOS 의
+   native momentum-scroll indicator 가 안 잡혀서 display:none + scrollbar-width:none
+   으로 완전히 제거. scrollbar-gutter 도 auto 로 되돌려 오른쪽 reserved gap 제거. */
 @media (hover: none) and (pointer: coarse) {
+  body,
+  main,
+  .api-keys-list,
+  .logs-list {
+    scrollbar-width: none;
+  }
   body::-webkit-scrollbar,
   main::-webkit-scrollbar,
   .api-keys-list::-webkit-scrollbar,
   .logs-list::-webkit-scrollbar {
+    display: none;
     width: 0;
     height: 0;
+  }
+  main {
+    scrollbar-gutter: auto;
   }
 }
 
