@@ -29,7 +29,7 @@ import {
 import {
   onEnterLunchTab,
   setupLunchRefreshButton,
-  setupLunchImageDialog,
+  setupLunchImageZoom,
 } from './js/lunch.js';
 import {
   onEnterLogsTab,
@@ -126,7 +126,7 @@ setupLogsTab();
 setupAuthForm();
 setupLogout();
 setupLunchRefreshButton();
-setupLunchImageDialog();
+setupLunchImageZoom();
 setupTabDragAndDrop();
 setupAddToggle({
   buttonId: 'add-toggle',

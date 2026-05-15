@@ -67,31 +67,17 @@ export function setupLunchRefreshButton() {
   });
 }
 
-export function setupLunchImageDialog() {
+export function setupLunchImageZoom() {
+  const wrap = document.querySelector('.lunch-image-wrap');
   const img = $('#lunch-image');
-  const dlg = $('#lunch-image-dialog');
-  const large = $('#lunch-image-large');
-  if (!img || !dlg || !large) return;
-  img.addEventListener('click', () => {
-    if (!img.src) return;
-    large.src = img.src;
-    if (typeof dlg.showModal === 'function') dlg.showModal();
-    else dlg.setAttribute('open', '');
-  });
-  const close = dlg.querySelector('[data-dialog-close]');
-  if (close) close.addEventListener('click', () => dlg.close());
-  // 백드롭 클릭으로도 닫기 (단, 줌/팬 중 발생한 click 은 무시)
-  dlg.addEventListener('click', (e) => {
-    if (e.target === dlg && !suppressBackdropClick) dlg.close();
-  });
+  if (!wrap || !img) return;
 
-  // ── 줌 / 팬 / 핀치 ────────────────────────────────────────
+  // ── 줌 / 팬 / 핀치 (메인 이미지 직접 적용) ────────────────────
   const MIN = 1;
   const MAX = 6;
   let scale = 1;
   let tx = 0;
   let ty = 0;
-  let suppressBackdropClick = false;
   const pointers = new Map();
   let lastPinchDist = 0;
   let lastPinchCenter = { x: 0, y: 0 };
@@ -99,22 +85,15 @@ export function setupLunchImageDialog() {
   let lastX = 0;
   let lastY = 0;
   let lastTapAt = 0;
-  let movedDuringDrag = false;
 
   function apply(animate = false) {
-    large.style.transition = animate ? 'transform 0.18s ease' : 'none';
-    large.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
-    large.style.cursor = scale > 1 ? 'grab' : 'zoom-in';
-  }
-  function reset(animate = false) {
-    scale = 1;
-    tx = 0;
-    ty = 0;
-    apply(animate);
+    img.style.transition = animate ? 'transform 0.18s ease' : 'none';
+    img.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+    img.style.cursor = scale > 1 ? 'grab' : 'zoom-in';
   }
   function zoomAt(clientX, clientY, next) {
     next = Math.max(MIN, Math.min(MAX, next));
-    const rect = large.getBoundingClientRect();
+    const rect = img.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
     const dx = clientX - cx;
@@ -131,18 +110,23 @@ export function setupLunchImageDialog() {
     apply(false);
   }
 
-  large.addEventListener('wheel', (e) => {
-    if (!dlg.open) return;
+  // 새 이미지 src 가 세팅될 때(매번 fetch 시) 줌 리셋
+  img.addEventListener('load', () => {
+    scale = 1;
+    tx = 0;
+    ty = 0;
+    apply(false);
+  });
+
+  wrap.addEventListener('wheel', (e) => {
     e.preventDefault();
     const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
     zoomAt(e.clientX, e.clientY, scale * factor);
   }, { passive: false });
 
-  large.addEventListener('pointerdown', (e) => {
-    if (!dlg.open) return;
-    large.setPointerCapture?.(e.pointerId);
+  img.addEventListener('pointerdown', (e) => {
+    img.setPointerCapture?.(e.pointerId);
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    movedDuringDrag = false;
 
     if (pointers.size === 2) {
       dragging = false;
@@ -169,7 +153,7 @@ export function setupLunchImageDialog() {
     lastY = e.clientY;
   });
 
-  large.addEventListener('pointermove', (e) => {
+  img.addEventListener('pointermove', (e) => {
     if (!pointers.has(e.pointerId)) return;
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
@@ -194,7 +178,6 @@ export function setupLunchImageDialog() {
       ty += e.clientY - lastY;
       lastX = e.clientX;
       lastY = e.clientY;
-      movedDuringDrag = true;
       apply(false);
     }
   });
@@ -203,28 +186,19 @@ export function setupLunchImageDialog() {
     pointers.delete(e.pointerId);
     if (pointers.size < 2) lastPinchDist = 0;
     if (pointers.size === 0) {
-      if (movedDuringDrag) {
-        // 드래그 직후 발생하는 click(백드롭 닫힘) 한 번 무시
-        suppressBackdropClick = true;
-        setTimeout(() => { suppressBackdropClick = false; }, 0);
-      }
       dragging = false;
-      movedDuringDrag = false;
     }
   }
-  large.addEventListener('pointerup', endPointer);
-  large.addEventListener('pointercancel', endPointer);
-  large.addEventListener('lostpointercapture', endPointer);
+  img.addEventListener('pointerup', endPointer);
+  img.addEventListener('pointercancel', endPointer);
+  img.addEventListener('lostpointercapture', endPointer);
 
-  // 데스크탑 더블클릭으로 토글
-  large.addEventListener('dblclick', (e) => {
+  // 데스크탑 더블클릭으로 토글 줌
+  img.addEventListener('dblclick', (e) => {
     e.preventDefault();
     zoomAt(e.clientX, e.clientY, scale > 1 ? 1 : 2.5);
     apply(true);
   });
-
-  // 다이얼로그 닫힐 때 줌 리셋
-  dlg.addEventListener('close', () => reset(false));
 
   apply(false);
 }

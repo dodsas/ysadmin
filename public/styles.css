@@ -611,6 +611,7 @@ main {
   border-radius: 8px;
   box-shadow: var(--shadow);
   overflow: hidden;
+  touch-action: none;
 }
 
 .lunch-image-wrap img {
@@ -619,6 +620,16 @@ main {
   height: auto;
   margin: 0 auto;
   cursor: zoom-in;
+  /* 핀치/팬을 JS 가 직접 처리 — 브라우저 기본 제스처 무력화 */
+  touch-action: none;
+  -webkit-user-drag: none;
+  user-select: none;
+  transform-origin: center center;
+  will-change: transform;
+}
+
+.lunch-image-wrap img:active {
+  cursor: grabbing;
 }
 
 .lunch-ocr {
@@ -839,61 +850,6 @@ main {
   width: 100%;
   border: 0;
   background: white;
-}
-
-.lunch-image-dialog {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 0;
-  max-width: 92vw;
-  max-height: 92vh;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-  overflow: hidden;
-}
-
-.lunch-image-dialog::backdrop {
-  background: rgba(0, 0, 0, 0.85);
-}
-
-.lunch-image-dialog img {
-  display: block;
-  max-width: 92vw;
-  max-height: 92vh;
-  object-fit: contain;
-  /* 핀치/팬 직접 처리: 브라우저 기본 제스처 무력화 */
-  touch-action: none;
-  -webkit-user-drag: none;
-  user-select: none;
-  transform-origin: center center;
-  will-change: transform;
-  cursor: zoom-in;
-}
-
-.lunch-image-dialog img:active {
-  cursor: grabbing;
-}
-
-.lunch-image-dialog-close {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.5);
-  color: white;
-  border: 0;
-  cursor: pointer;
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1;
-}
-
-.lunch-image-dialog-close:hover {
-  background: rgba(0, 0, 0, 0.75);
 }
 
 @media (max-width: 720px) {
