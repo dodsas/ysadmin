@@ -190,9 +190,59 @@ body.has-update {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: none;
+    /* 스크롤바가 표시/숨김 될 때 컨텐츠가 흔들리지 않도록 폭 예약 */
+    scrollbar-gutter: stable;
   }
   .app-header {
     padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* 스크롤바: 항상 얕고 반투명하게 — 갑자기 나타났다 사라지는 깜빡임 제거.
+   Firefox(스타일링 제한) + WebKit 둘 다 커버. */
+body,
+.api-keys-list,
+.logs-list {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+
+body::-webkit-scrollbar,
+.api-keys-list::-webkit-scrollbar,
+.logs-list::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+body::-webkit-scrollbar-track,
+.api-keys-list::-webkit-scrollbar-track,
+.logs-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+body::-webkit-scrollbar-thumb,
+.api-keys-list::-webkit-scrollbar-thumb,
+.logs-list::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.12);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 8px;
+  transition: background-color 0.25s ease;
+}
+
+body:hover::-webkit-scrollbar-thumb,
+.api-keys-list:hover::-webkit-scrollbar-thumb,
+.logs-list:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.22);
+}
+
+/* 터치 기기에서는 호버가 없으니 기본 스크롤바를 가려 자연스럽게 */
+@media (hover: none) and (pointer: coarse) {
+  body::-webkit-scrollbar,
+  .api-keys-list::-webkit-scrollbar,
+  .logs-list::-webkit-scrollbar {
+    width: 0;
+    height: 0;
   }
 }
 
