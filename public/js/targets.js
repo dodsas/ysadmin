@@ -39,6 +39,13 @@ function renderTarget(target) {
   urlEl.addEventListener('click', (e) => {
     if (!isStandalone()) return;
     e.preventDefault();
+    // iOS Safari PWA 는 iframe 안의 third-party 쿠키를 ITP 로 차단해서
+    // SSO 핸드오프 후 타겟이 Set-Cookie 해도 세션이 유지되지 않음 → 로그인 화면이 다시 뜸.
+    // SSO 가 켜진 항목은 PWA 창을 top-level 로 이동시켜 first-party 쿠키로 처리.
+    if (target.sso && target.sso.enabled) {
+      window.location.href = `/api/targets/${target.id}/go`;
+      return;
+    }
     openTargetFrame(target);
   });
 
@@ -127,12 +134,21 @@ function isStandalone() {
   return false;
 }
 
+const FRAME_HISTORY_TAG = 'targetFrameDialog';
+let frameHistoryBaseLen = 0;
+let frameClosing = false;
+
 function openTargetFrame(target) {
   const dlg = $('#target-frame-dialog');
   const iframe = $('[data-frame]', dlg);
   const title = $('[data-frame-title]', dlg);
   const goUrl = `/api/targets/${target.id}/go`;
   title.textContent = target.label || target.url;
+  // 센티넬 상태를 push 해서 백 제스처/버튼을 다이얼로그 닫기로 가로챈다.
+  history.pushState({ tag: FRAME_HISTORY_TAG }, '');
+  // 센티넬 직후 길이를 기준점으로 저장. iframe 내부 네비게이션으로 늘어난 만큼 닫을 때 되돌린다.
+  // 닫을 때 되돌릴 양 = (현재 길이 - 기준 길이) + 1(센티넬 자신).
+  frameHistoryBaseLen = history.length;
   iframe.src = goUrl;
   if (typeof dlg.showModal === 'function') {
     dlg.showModal();
@@ -144,13 +160,41 @@ function openTargetFrame(target) {
 export function setupTargetFrameDialog() {
   const dlg = $('#target-frame-dialog');
   if (!dlg) return;
-  const iframe = $('[data-frame]', dlg);
   const back = $('[data-frame-back]', dlg);
   const external = $('[data-frame-external]', dlg);
 
-  const close = () => {
-    iframe.src = 'about:blank';
+  // iframe.src = 'about:blank' 은 또 다른 history 항목을 만들어 정리를 망가뜨린다.
+  // 대신 iframe 엘리먼트 자체를 새 빈 것으로 교체해 (1) 모니터 세션을 끊고 (2) history 오염도 피한다.
+  const finalize = () => {
+    const current = $('[data-frame]', dlg);
+    if (current) {
+      const fresh = document.createElement('iframe');
+      for (const attr of current.attributes) {
+        if (attr.name === 'src') continue;
+        fresh.setAttribute(attr.name, attr.value);
+      }
+      current.replaceWith(fresh);
+    }
     if (dlg.open) dlg.close();
+  };
+
+  // 사용자가 명시적으로 닫는 경로(버튼/취소/외부열기): iframe 가 만든 히스토리까지 함께 되돌린다.
+  // 되돌릴 양 = (현재 길이) - (열기 직전 길이). 센티넬 + iframe 누적 항목이 포함된다.
+  const close = () => {
+    if (frameClosing) return;
+    const steps = Math.max(0, history.length - frameHistoryBaseLen) + 1;
+    if (steps > 0) {
+      frameClosing = true;
+      const onPop = () => {
+        window.removeEventListener('popstate', onPop);
+        frameClosing = false;
+        finalize();
+      };
+      window.addEventListener('popstate', onPop);
+      history.go(-steps);
+    } else {
+      finalize();
+    }
   };
 
   back.addEventListener('click', close);
@@ -159,9 +203,50 @@ export function setupTargetFrameDialog() {
     close();
   });
   external.addEventListener('click', () => {
-    const url = iframe.src;
-    close();
-    window.open(url, '_blank', 'noreferrer');
+    const current = $('[data-frame]', dlg);
+    const url = current ? current.src : '';
+    const openExternal = () => window.open(url, '_blank', 'noreferrer');
+    if (frameClosing) {
+      openExternal();
+      return;
+    }
+    // close() 가 history.go 를 트리거하므로, 정리가 끝난 뒤 새 탭을 연다.
+    const steps = Math.max(0, history.length - frameHistoryBaseLen) + 1;
+    if (steps > 0) {
+      frameClosing = true;
+      const onPop = () => {
+        window.removeEventListener('popstate', onPop);
+        frameClosing = false;
+        finalize();
+        openExternal();
+      };
+      window.addEventListener('popstate', onPop);
+      history.go(-steps);
+    } else {
+      finalize();
+      openExternal();
+    }
+  });
+
+  // 백 제스처/버튼으로 popstate 가 발생했고 다이얼로그가 열려있다면, SPA 가 뒤로 가는 대신 닫는다.
+  // 이 시점에는 사용자가 이미 한 단계 뒤로 갔으므로(센티넬 또는 iframe 항목 소비),
+  // 남은 항목 = 현재 길이 - 기준 길이. 0 이면 그냥 정리.
+  window.addEventListener('popstate', () => {
+    if (frameClosing) return;
+    if (!dlg.open) return;
+    const steps = Math.max(0, history.length - frameHistoryBaseLen);
+    if (steps > 0) {
+      frameClosing = true;
+      const onPop = () => {
+        window.removeEventListener('popstate', onPop);
+        frameClosing = false;
+        finalize();
+      };
+      window.addEventListener('popstate', onPop);
+      history.go(-steps);
+    } else {
+      finalize();
+    }
   });
 }
 
