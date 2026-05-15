@@ -8,6 +8,13 @@
 - 정적 파일 변경은 **서버 재시작 불필요**, 브라우저 새로고침만으로 반영됨
 - 서버 재시작이 필요한 코드: `server.js`, `lib/*.js`, `package.json`, 환경변수
 
+## iOS PWA
+
+iOS 홈 화면에 추가해서 standalone 으로 쓰는 게 주된 사용 시나리오. WebKit 의
+알려진 버그/제약(스크롤 컨테이너 + sticky detach, iframe ITP, history 오염,
+safe-area 등) 과 채택한 대응책은 `docs/ios-pwa.md` 참고. PWA 에서만 재현되는
+이슈는 그 문서 7번 디버깅 체크리스트부터 본다.
+
 ## 로그 위치
 
 - 운영(컨테이너 안): `/app/logs/ysadmin.log` — JSON 라인 포맷
