@@ -64,7 +64,9 @@ function register(app) {
     if (!target) return res.status(404).send('대상을 찾을 수 없습니다.');
     const { basicAuth, sso, url } = target;
 
-    // 1) SSO 토큰 핸드오프 (최우선) — 대상 사이트가 /sso?token=... 받아 세션 발급.
+    // 1) SSO 토큰 핸드오프 (최우선) — POST form 으로 전달.
+    // GET 쿼리로 보내면 토큰이 ① 브라우저 history ② 대상 access log ③ Referer 헤더에 남음.
+    // SAML/OIDC form_post 와 동일 패턴: 자동 submit HTML 한 장 반환.
     if (sso && sso.enabled && sso.secret) {
       try {
         const token = issueSsoToken({
@@ -74,9 +76,12 @@ function register(app) {
           ttlSec: sso.ttlSec || 30,
           extra: { src: 'ysadmin' },
         });
-        const target_url = new URL(sso.endpoint || '/sso', url);
-        target_url.searchParams.set('token', token);
-        return res.redirect(302, target_url.toString());
+        const action = new URL(sso.endpoint || '/sso', url).toString();
+        const html = renderSsoFormPost(action, token);
+        res.set('Content-Type', 'text/html; charset=utf-8');
+        res.set('Cache-Control', 'no-store');
+        res.set('Referrer-Policy', 'no-referrer');
+        return res.send(html);
       } catch (err) {
         return res.status(500).send(`SSO 토큰 발급 실패: ${err.message}`);
       }
@@ -101,6 +106,30 @@ function register(app) {
   app.post('/api/targets/sso/secret', (_req, res) => {
     res.json({ secret: generateSecret(32) });
   });
+}
+
+function htmlEscape(s) {
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]),
+  );
+}
+
+function renderSsoFormPost(action, token) {
+  const a = htmlEscape(action);
+  const t = htmlEscape(token);
+  return `<!doctype html>
+<html lang="ko"><head>
+<meta charset="utf-8" />
+<meta name="referrer" content="no-referrer" />
+<title>SSO 이동중…</title>
+</head>
+<body>
+<form id="f" method="POST" action="${a}">
+  <input type="hidden" name="token" value="${t}" />
+  <noscript><button type="submit">계속</button></noscript>
+</form>
+<script>document.getElementById('f').submit();</script>
+</body></html>`;
 }
 
 export const keepaliveFeature = {
