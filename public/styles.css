@@ -67,9 +67,20 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* 탭바 우측에 떠 있는 작은 아이콘 액션 (로그아웃 등). 탭과 같은 줄에 위치해 추가 세로 공간 안 차지 */
-.tabbar-action {
+/* 탭바 우측 액션 그룹 — 탭과 같은 줄, 우측 끝에 그룹화 */
+.tabbar-actions {
   margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* 그룹 내부 액션이 모두 숨겨졌을 때는 빈 공간도 차지하지 않음 */
+.tabbar-actions:not(:has(.tabbar-action:not([hidden]))) {
+  display: none;
+}
+
+.tabbar-action {
   align-self: center;
   background: transparent;
   border: 0;
