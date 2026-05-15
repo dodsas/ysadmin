@@ -10,6 +10,7 @@ RUN npm ci --omit=dev && npm cache clean --force
 
 COPY server.js ./
 COPY lib ./lib
+COPY features ./features
 COPY public ./public
 
 RUN mkdir -p /app/data /app/logs /app/secrets && chown -R node:node /app
