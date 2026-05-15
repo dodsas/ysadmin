@@ -33,6 +33,10 @@ function setupTabs() {
   const panels = $$('.panel');
   tabs.forEach((tab) => {
     tab.addEventListener('click', () => {
+      // 같은 탭 재터치 시 panel display 재토글로 reflow 가 일어나면
+      // body.scrollHeight 가 바뀌어 sticky header 가 한 프레임 깜빡일 수 있음.
+      // 이미 활성 상태면 아무것도 하지 않는다.
+      if (tab.classList.contains('is-active')) return;
       const target = tab.dataset.tab;
       tabs.forEach((t) => {
         const active = t === tab;
@@ -40,6 +44,11 @@ function setupTabs() {
         t.setAttribute('aria-selected', String(active));
       });
       panels.forEach((p) => p.classList.toggle('is-active', p.dataset.panel === target));
+      // 패널마다 컨텐츠 양 차이가 커서 body.scrollHeight 가 급변한다.
+      // 스크롤 위치가 새 패널 끝을 넘어가 있으면 브라우저가 transient
+      // scrollTop 보정을 하면서 sticky header 가 한 프레임 깜빡인다.
+      // 탭 전환 시 즉시 최상단으로 이동시켜 transient state 를 없앤다.
+      window.scrollTo({ top: 0, behavior: 'auto' });
       onEnterFeature(target);
     });
   });

@@ -177,6 +177,12 @@ body.has-update {
   position: sticky;
   top: 0;
   z-index: 10;
+  /* iOS PWA 에서 body 가 스크롤 컨테이너 + sticky + backdrop-filter 조합은
+     빠른 탭 터치 시 sticky 가 한 프레임 layout 기준으로 점프해 상단에
+     공백이 깜빡이는 webkit 이슈가 있다. GPU 레이어를 미리 끌어올려
+     paint 격리. */
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 /* standalone(PWA): 다이나믹 아일랜드 바로 아래에 탭 + PTR(고무줄) 차단 */
