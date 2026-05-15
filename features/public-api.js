@@ -52,7 +52,7 @@ function register(app) {
     res.json(spec);
   });
   app.get('/api/docs', (_req, res) => {
-    res.type('html').send(redocHtml('/api/v1/openapi.json'));
+    res.type('html').send(scalarHtml('/api/v1/openapi.json'));
   });
 
   const v1 = Router();
@@ -148,18 +148,25 @@ function register(app) {
   app.use('/api/v1', v1);
 }
 
-function redocHtml(specUrl) {
+function scalarHtml(specUrl) {
+  const config = {
+    url: specUrl,
+    theme: 'default',
+    layout: 'modern',
+    darkMode: true,
+    hideClientButton: false,
+    metaData: { title: 'ysadmin Public API' },
+  };
   return `<!doctype html>
 <html lang="ko"><head>
 <meta charset="utf-8" />
-<title>ysadmin Public API · Redoc</title>
+<title>ysadmin Public API</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,700|Roboto:300,400,700" rel="stylesheet" />
 <style>body { margin: 0; padding: 0; }</style>
 </head>
 <body>
-<redoc spec-url="${specUrl}"></redoc>
-<script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+<script id="api-reference" type="application/json" data-configuration='${JSON.stringify(config).replace(/'/g, '&#39;')}'></script>
+<script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
 </body></html>`;
 }
 
