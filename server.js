@@ -1,34 +1,8 @@
 import express from 'express';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { createReadStream } from 'node:fs';
-import { stat } from 'node:fs/promises';
-import { listTargets, addTarget, removeTarget, getTarget, reorderTargets, updateTarget } from './lib/store.js';
-import { startScheduler, checkTarget } from './lib/pinger.js';
-import {
-  refreshLunch,
-  getLunchMeta,
-  getOrRefreshLunch,
-  startLunchScheduler,
-  LUNCH_IMAGE_FILE,
-} from './lib/lunch.js';
 import { getTabOrder, setTabOrder } from './lib/tabs.js';
-import {
-  listComputers,
-  addComputer,
-  removeComputer,
-  getComputer,
-  markWoken,
-  reorderComputers,
-  updateComputer,
-  recordStatus,
-} from './lib/computers.js';
-import { sendMagicPacket } from './lib/wol.js';
-import { checkComputerStatus } from './lib/lan.js';
 import { logger } from './lib/logger.js';
-import { readRecentLogs, clearLogs } from './lib/log-reader.js';
-import { startComputerPoller, triggerCheckAll } from './lib/computer-poller.js';
-import { shutdownComputer } from './lib/shutdown.js';
 import {
   isInitialized,
   setupCredentials,
@@ -38,6 +12,11 @@ import {
   deleteSession,
   getSessionDurationMs,
 } from './lib/auth.js';
+import {
+  features,
+  registerFeatures,
+  startFeatureSchedulers,
+} from './features/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 5566);
@@ -139,6 +118,7 @@ const PUBLIC_API_PATHS = new Set([
   '/api/auth/logout',
   '/api/health',
   '/api/version',
+  '/api/features',
 ]);
 
 app.use(async (req, res, next) => {
@@ -153,207 +133,18 @@ app.use(async (req, res, next) => {
   next();
 });
 
-app.get('/api/targets', async (_req, res) => {
-  const targets = await listTargets();
-  res.json({ targets });
-});
+// 각 feature 가 자신의 API 라우트를 등록한다.
+registerFeatures(app);
 
-app.post('/api/targets', async (req, res) => {
-  try {
-    const target = await addTarget({ url: req.body?.url, label: req.body?.label });
-    checkTarget(target).catch((err) => console.error('[server] initial check failed:', err));
-    res.status(201).json({ target });
-  } catch (err) {
-    const status = err.code === 'DUPLICATE' ? 409 : 400;
-    res.status(status).json({ error: err.message });
-  }
-});
-
-app.delete('/api/targets/:id', async (req, res) => {
-  const ok = await removeTarget(req.params.id);
-  if (!ok) return res.status(404).json({ error: '대상을 찾을 수 없습니다.' });
-  res.status(204).end();
-});
-
-app.put('/api/targets/order', async (req, res) => {
-  try {
-    const order = req.body?.order;
-    const targets = await reorderTargets(order);
-    res.json({ targets });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-app.post('/api/targets/:id/check', async (req, res) => {
-  const target = await getTarget(req.params.id);
-  if (!target) return res.status(404).json({ error: '대상을 찾을 수 없습니다.' });
-  const updated = await checkTarget(target);
-  res.json({ target: updated });
-});
-
-app.patch('/api/targets/:id', async (req, res) => {
-  try {
-    const updated = await updateTarget(req.params.id, req.body || {});
-    if (!updated) return res.status(404).json({ error: '대상을 찾을 수 없습니다.' });
-    res.json({ target: updated });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-app.get('/api/logs', async (req, res) => {
-  try {
-    const limit = req.query.limit ? Number(req.query.limit) : 200;
-    const entries = await readRecentLogs({ limit });
-    res.json({ entries });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.delete('/api/logs', async (req, res) => {
-  try {
-    const username = req.session?.username || '-';
-    const result = await clearLogs({ includeRotated: req.query.rotated !== '0' });
-    logger.info('logs', '로그 삭제', { by: username, ...result });
-    res.json({ ok: true, ...result });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get('/api/targets/:id/go', async (req, res) => {
-  const target = await getTarget(req.params.id);
-  if (!target) return res.status(404).send('대상을 찾을 수 없습니다.');
-  const { basicAuth, url } = target;
-  if (!basicAuth || !basicAuth.username) {
-    return res.redirect(302, url);
-  }
-  try {
-    const u = new URL(url);
-    u.username = basicAuth.username;
-    u.password = basicAuth.password || '';
-    return res.redirect(302, u.toString());
-  } catch {
-    return res.redirect(302, url);
-  }
-});
-
-app.get('/api/computers', async (_req, res) => {
-  const computers = await listComputers();
-  res.json({ computers });
-});
-
-app.post('/api/computers', async (req, res) => {
-  try {
-    const computer = await addComputer({ mac: req.body?.mac, label: req.body?.label });
-    res.status(201).json({ computer });
-  } catch (err) {
-    const status = err.code === 'DUPLICATE' ? 409 : 400;
-    res.status(status).json({ error: err.message });
-  }
-});
-
-app.delete('/api/computers/:id', async (req, res) => {
-  const ok = await removeComputer(req.params.id);
-  if (!ok) return res.status(404).json({ error: '컴퓨터를 찾을 수 없습니다.' });
-  res.status(204).end();
-});
-
-app.put('/api/computers/order', async (req, res) => {
-  try {
-    const order = req.body?.order;
-    const computers = await reorderComputers(order);
-    res.json({ computers });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-app.post('/api/computers/:id/wake', async (req, res) => {
-  const computer = await getComputer(req.params.id);
-  if (!computer) return res.status(404).json({ error: '컴퓨터를 찾을 수 없습니다.' });
-  try {
-    logger.info('wol', `매직 패킷 전송 시도`, { id: computer.id, mac: computer.mac, label: computer.label });
-    await sendMagicPacket(computer.mac);
-    const updated = await markWoken(computer.id);
-    logger.info('wol', `매직 패킷 전송 완료`, { mac: computer.mac });
-    res.json({ computer: updated });
-  } catch (err) {
-    logger.error('wol', `매직 패킷 전송 실패`, { mac: computer.mac, error: err.message });
-    res.status(500).json({ error: `매직 패킷 전송 실패: ${err.message}` });
-  }
-});
-
-app.get('/api/computers/:id/status', async (req, res) => {
-  const computer = await getComputer(req.params.id);
-  if (!computer) return res.status(404).json({ error: '컴퓨터를 찾을 수 없습니다.' });
-  try {
-    const status = await checkComputerStatus({ mac: computer.mac, ip: computer.ip });
-    const updated = await recordStatus(computer.id, status);
-    res.json({ status, computer: updated });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/computers/check-all', async (_req, res) => {
-  const result = await triggerCheckAll('tab-entry');
-  res.json(result);
-});
-
-app.patch('/api/computers/:id', async (req, res) => {
-  try {
-    const updated = await updateComputer(req.params.id, {
-      label: req.body?.label,
-      ip: req.body?.ip,
-      os: req.body?.os,
-      shutdown: req.body?.shutdown,
-    });
-    if (!updated) return res.status(404).json({ error: '컴퓨터를 찾을 수 없습니다.' });
-    res.json({ computer: updated });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-app.post('/api/computers/:id/shutdown', async (req, res) => {
-  const computer = await getComputer(req.params.id);
-  if (!computer) return res.status(404).json({ error: '컴퓨터를 찾을 수 없습니다.' });
-  try {
-    const result = await shutdownComputer(computer);
-    res.json(result);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-app.get('/api/lunch', async (req, res) => {
-  const force = req.query.force === '1' || req.query.force === 'true';
-  try {
-    const meta = await getOrRefreshLunch({ force });
-    res.json({ meta });
-  } catch (err) {
-    logger.error('lunch', '갱신 실패', { error: err.message });
-    const cached = await getLunchMeta();
-    if (cached) {
-      res.json({ meta: cached, stale: true, error: err.message });
-    } else {
-      res.status(502).json({ error: err.message });
-    }
-  }
-});
-
-app.get('/api/lunch/image', async (_req, res) => {
-  try {
-    await stat(LUNCH_IMAGE_FILE);
-    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-    res.set('Content-Type', 'image/jpeg');
-    createReadStream(LUNCH_IMAGE_FILE).pipe(res);
-  } catch {
-    res.status(404).json({ error: '이미지가 아직 다운로드되지 않았습니다.' });
-  }
+// feature 매니페스트 — 프론트엔드가 어떤 feature 가 활성화돼 있는지 조회.
+app.get('/api/features', (_req, res) => {
+  res.json({
+    features: features.map((f) => ({
+      id: f.id,
+      label: f.label,
+      description: f.description || '',
+    })),
+  });
 });
 
 app.get('/api/tabs/order', async (_req, res) => {
@@ -386,9 +177,12 @@ app.get('/api/version', (_req, res) => {
 });
 
 app.listen(PORT, () => {
-  logger.info('server', `시작`, { port: PORT, version: VERSION });
+  logger.info('server', '시작', {
+    port: PORT,
+    version: VERSION,
+    features: features.map((f) => f.id),
+  });
   console.log(`[server] listening on http://localhost:${PORT} (version=${VERSION})`);
-  startScheduler();
-  startComputerPoller();
-  startLunchScheduler();
+  console.log(`[server] features: ${features.map((f) => `${f.id}(${f.label})`).join(', ')}`);
+  startFeatureSchedulers();
 });

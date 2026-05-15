@@ -11,38 +11,20 @@ import {
 } from './js/auth.js';
 import { checkVersion, setupUpdateBanner } from './js/version.js';
 import {
-  refreshTargets,
-  setupAddForm,
-  setupRefreshButton,
-  setTargetsContainer,
-  setupTargetSettingsDialog,
-  setupTargetFrameDialog,
-} from './js/targets.js';
-import {
-  refreshComputers,
-  onEnterComputersTab,
-  setupAddComputerForm,
-  setupRefreshComputersButton,
-  setupSettingsDialog,
-  setComputersContainer,
-} from './js/computers.js';
-import {
-  onEnterLunchTab,
-  setupLunchRefreshButton,
-  setupLunchImageZoom,
-} from './js/lunch.js';
-import {
-  onEnterLogsTab,
-  setupLogsTab,
-} from './js/logs.js';
-import {
   initTabOrder,
   setupTabDragAndDrop,
   pollTabOrder,
 } from './js/tabs.js';
+import {
+  features,
+  initFeatures,
+  onEnterFeature,
+  refreshAll,
+} from './features/index.js';
 
 const POLL_INTERVAL_MS = 5000;
 const VERSION_POLL_MS = 10000;
+const DEFAULT_TAB = features[0]?.id ?? null;
 
 let pollersStarted = false;
 
@@ -58,13 +40,7 @@ function setupTabs() {
         t.setAttribute('aria-selected', String(active));
       });
       panels.forEach((p) => p.classList.toggle('is-active', p.dataset.panel === target));
-      if (target === 'computers') {
-        onEnterComputersTab();
-      } else if (target === 'lunch') {
-        onEnterLunchTab();
-      } else if (target === 'logs') {
-        onEnterLogsTab().catch((err) => console.error(err));
-      }
+      onEnterFeature(target);
     });
   });
 }
@@ -92,14 +68,13 @@ function setupAddToggle({ buttonId, formId, openLabel, closeLabel }) {
 
 async function onAuthenticated() {
   await initTabOrder();
-  await Promise.allSettled([refreshTargets(), refreshComputers(), checkVersion()]);
-  onEnterComputersTab();
+  await Promise.allSettled([refreshAll(), checkVersion()]);
+  if (DEFAULT_TAB) onEnterFeature(DEFAULT_TAB);
   if (pollersStarted) return;
   pollersStarted = true;
   setInterval(() => {
     if (!isAuthenticated()) return;
-    refreshTargets().catch((err) => console.error(err));
-    refreshComputers().catch((err) => console.error(err));
+    refreshAll();
     pollTabOrder().catch((err) => console.error(err));
   }, POLL_INTERVAL_MS);
   setInterval(() => {
@@ -110,23 +85,11 @@ async function onAuthenticated() {
 
 setOnAuthenticated(onAuthenticated);
 
-setTargetsContainer($('#targets'));
-setComputersContainer($('#computers'));
-
+initFeatures();
 setupTabs();
-setupAddForm();
-setupRefreshButton();
-setupAddComputerForm();
-setupRefreshComputersButton();
 setupUpdateBanner();
-setupSettingsDialog();
-setupTargetSettingsDialog();
-setupTargetFrameDialog();
-setupLogsTab();
 setupAuthForm();
 setupLogout();
-setupLunchRefreshButton();
-setupLunchImageZoom();
 setupTabDragAndDrop();
 setupAddToggle({
   buttonId: 'add-toggle',
