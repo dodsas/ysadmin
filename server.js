@@ -118,6 +118,7 @@ const PUBLIC_API_PATHS = new Set([
   '/api/auth/logout',
   '/api/health',
   '/api/version',
+  '/api/version/stream',
   '/api/features',
 ]);
 
@@ -174,6 +175,33 @@ app.get('/api/version', (_req, res) => {
   res.set('Pragma', 'no-cache');
   res.set('Expires', '0');
   res.json({ version: VERSION });
+});
+
+// SSE 버전 스트림 — 클라이언트는 EventSource 로 구독.
+// 같은 프로세스가 살아있는 동안 VERSION 은 불변이라 첫 연결 시 1회만 보내고
+// heartbeat 으로 연결만 유지. 컨테이너 재시작 → 연결 끊김 → EventSource 자동
+// 재연결 → 새 VERSION 수신 → 클라이언트가 배너 표시.
+const SSE_HEARTBEAT_MS = 25_000;
+app.get('/api/version/stream', (req, res) => {
+  res.set({
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-store, no-cache, must-revalidate',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+  if (typeof res.flushHeaders === 'function') res.flushHeaders();
+  res.write('retry: 3000\n\n');
+  res.write(`event: version\ndata: ${JSON.stringify({ version: VERSION })}\n\n`);
+  const hb = setInterval(() => {
+    try {
+      res.write(': hb\n\n');
+    } catch {
+      /* connection already closed */
+    }
+  }, SSE_HEARTBEAT_MS);
+  req.on('close', () => {
+    clearInterval(hb);
+  });
 });
 
 app.listen(PORT, () => {

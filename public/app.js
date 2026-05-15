@@ -9,7 +9,7 @@ import {
   setupLogout,
   setOnAuthenticated,
 } from './js/auth.js';
-import { checkVersion, setupUpdateBanner } from './js/version.js';
+import { startVersionStream, setupUpdateBanner } from './js/version.js';
 import {
   initTabOrder,
   setupTabDragAndDrop,
@@ -23,7 +23,6 @@ import {
 } from './features/index.js';
 
 const POLL_INTERVAL_MS = 5000;
-const VERSION_POLL_MS = 10000;
 const DEFAULT_TAB = features[0]?.id ?? null;
 
 let pollersStarted = false;
@@ -68,7 +67,7 @@ function setupAddToggle({ buttonId, formId, openLabel, closeLabel }) {
 
 async function onAuthenticated() {
   await initTabOrder();
-  await Promise.allSettled([refreshAll(), checkVersion()]);
+  await refreshAll();
   if (DEFAULT_TAB) onEnterFeature(DEFAULT_TAB);
   if (pollersStarted) return;
   pollersStarted = true;
@@ -77,10 +76,6 @@ async function onAuthenticated() {
     refreshAll();
     pollTabOrder().catch((err) => console.error(err));
   }, POLL_INTERVAL_MS);
-  setInterval(() => {
-    if (!isAuthenticated()) return;
-    checkVersion().catch((err) => console.error(err));
-  }, VERSION_POLL_MS);
 }
 
 setOnAuthenticated(onAuthenticated);
@@ -88,6 +83,7 @@ setOnAuthenticated(onAuthenticated);
 initFeatures();
 setupTabs();
 setupUpdateBanner();
+startVersionStream();
 setupAuthForm();
 setupLogout();
 setupTabDragAndDrop();
