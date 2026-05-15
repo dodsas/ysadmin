@@ -43,11 +43,42 @@ await page.screenshot({
 });
 await page.setViewportSize({ width: 1280, height: 800 });
 
-// Open API keys dialog
+// Open API keys dialog — desktop
 await page.click('#api-keys-link');
 await page.waitForSelector('#api-keys-dialog[open]', { timeout: 3000 });
-await page.waitForTimeout(200);
+await page.waitForTimeout(300);
 await page.screenshot({ path: `${OUT_DIR}/ui-api-keys-dialog.png`, fullPage: false });
+
+// Dialog rect on desktop
+const dlgRectDesktop = await page.locator('#api-keys-dialog').boundingBox();
+console.log('dialog desktop:', dlgRectDesktop);
+
+// Issue a key to see filled state
+await page.fill('#api-key-create-form input[name="label"]', 'Playwright Test');
+await page.click('#api-key-create-form button[type="submit"]');
+await page.waitForSelector('#api-key-issued:not([hidden])', { timeout: 3000 });
+await page.waitForTimeout(200);
+await page.screenshot({ path: `${OUT_DIR}/ui-api-keys-dialog-issued.png`, fullPage: false });
+
+// Close and revoke the test key via API
+await page.evaluate(async () => {
+  const r = await fetch('/api/admin/api-keys');
+  const { keys } = await r.json();
+  const k = keys.find((x) => x.label === 'Playwright Test');
+  if (k) await fetch(`/api/admin/api-keys/${k.id}`, { method: 'DELETE' });
+});
+await page.locator('#api-keys-dialog [data-dialog-close]').click();
+
+// Mobile dialog
+await page.setViewportSize({ width: 390, height: 844 });
+await page.waitForTimeout(200);
+await page.click('#api-keys-link');
+await page.waitForSelector('#api-keys-dialog[open]', { timeout: 3000 });
+await page.waitForTimeout(300);
+await page.screenshot({ path: `${OUT_DIR}/ui-api-keys-dialog-mobile.png`, fullPage: false });
+const dlgRectMobile = await page.locator('#api-keys-dialog').boundingBox();
+console.log('dialog mobile:', dlgRectMobile);
+await page.setViewportSize({ width: 1280, height: 800 });
 
 // Dump layout info
 const info = await page.evaluate(() => {

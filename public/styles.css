@@ -469,7 +469,7 @@ main {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  min-width: min(520px, 90vw);
+  padding: 24px;
 }
 
 .api-key-create {
