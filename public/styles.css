@@ -223,64 +223,65 @@ body.has-update {
   }
 }
 
-/* 스크롤바: 항상 얕고 반투명하게 — 갑자기 나타났다 사라지는 깜빡임 제거.
-   Firefox(스타일링 제한) + WebKit 둘 다 커버. */
-body,
-main,
-.api-keys-list,
-.logs-list {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
-}
+/* 스크롤바 처리는 입력 장치에 따라 완전히 다르다.
+   - 데스크탑(`hover: hover` + `pointer: fine`): 얕은 반투명 스타일 유지
+   - 터치(`hover: none` + `pointer: coarse`, 특히 iOS PWA): 완전히 제거
 
-body::-webkit-scrollbar,
-main::-webkit-scrollbar,
-.api-keys-list::-webkit-scrollbar,
-.logs-list::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-body::-webkit-scrollbar-track,
-main::-webkit-scrollbar-track,
-.api-keys-list::-webkit-scrollbar-track,
-.logs-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-body::-webkit-scrollbar-thumb,
-main::-webkit-scrollbar-thumb,
-.api-keys-list::-webkit-scrollbar-thumb,
-.logs-list::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.12);
-  border: 2px solid transparent;
-  background-clip: padding-box;
-  border-radius: 8px;
-  transition: background-color 0.25s ease;
-}
-
-body:hover::-webkit-scrollbar-thumb,
-main:hover::-webkit-scrollbar-thumb,
-.api-keys-list:hover::-webkit-scrollbar-thumb,
-.logs-list:hover::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.22);
-}
-
-/* 터치 기기(특히 iOS PWA)에서는 호버가 없고 native overlay scroll indicator 가
-   스크롤 시작 순간 잠깐 그려졌다 사라지면서 깜빡인다. width:0 만으로는 iOS 의
-   native momentum-scroll indicator 가 안 잡혀서 display:none + scrollbar-width:none
-   으로 완전히 제거. scrollbar-gutter 도 auto 로 되돌려 오른쪽 reserved gap 제거. */
-@media (hover: none) and (pointer: coarse) {
+   주의: 데스크탑용 스타일 블록을 hover 미디어쿼리 안에 두지 않으면, 터치
+   미디어쿼리의 reset 보다 selector 특이도가 높아서(body/main vs *)
+   `width: 8px` 가 그대로 적용돼 스크롤바가 보인다. 그래서 desktop 블록 자체를
+   `@media (hover: hover) and (pointer: fine)` 로 감싸 터치기기에서는 아예
+   평가되지 않게 만든다. */
+@media (hover: hover) and (pointer: fine) {
   body,
   main,
   .api-keys-list,
   .logs-list {
-    scrollbar-width: none;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
   }
+
   body::-webkit-scrollbar,
   main::-webkit-scrollbar,
   .api-keys-list::-webkit-scrollbar,
   .logs-list::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  body::-webkit-scrollbar-track,
+  main::-webkit-scrollbar-track,
+  .api-keys-list::-webkit-scrollbar-track,
+  .logs-list::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  body::-webkit-scrollbar-thumb,
+  main::-webkit-scrollbar-thumb,
+  .api-keys-list::-webkit-scrollbar-thumb,
+  .logs-list::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.12);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    border-radius: 8px;
+    transition: background-color 0.25s ease;
+  }
+
+  body:hover::-webkit-scrollbar-thumb,
+  main:hover::-webkit-scrollbar-thumb,
+  .api-keys-list:hover::-webkit-scrollbar-thumb,
+  .logs-list:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.22);
+  }
+}
+
+/* 터치기기: 모든 스크롤바 완전 제거. 데스크탑 블록은 hover 쿼리 안에 갇혀 있어
+   여기서 reset 할 필요 없이 처음부터 무 (none) 상태로 출발한다. */
+@media (hover: none) and (pointer: coarse) {
+  * {
+    scrollbar-width: none;
+  }
+  *::-webkit-scrollbar {
     display: none;
     width: 0;
     height: 0;
