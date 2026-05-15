@@ -181,7 +181,7 @@ app.get('/api/version', (_req, res) => {
 // 같은 프로세스가 살아있는 동안 VERSION 은 불변이라 첫 연결 시 1회만 보내고
 // heartbeat 으로 연결만 유지. 컨테이너 재시작 → 연결 끊김 → EventSource 자동
 // 재연결 → 새 VERSION 수신 → 클라이언트가 배너 표시.
-const SSE_HEARTBEAT_MS = 25_000;
+const SSE_HEARTBEAT_MS = 60_000;
 app.get('/api/version/stream', (req, res) => {
   res.set({
     'Content-Type': 'text/event-stream',
