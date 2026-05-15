@@ -37,18 +37,28 @@ function renderMeta(meta, opts = {}) {
   }
 }
 
+// 메뉴 데이터는 서버 측 08:00 KST 배치에서만 갱신되므로 한 번 받아오면 캐싱하고
+// 탭 재진입 시 재요청하지 않는다. force=true(새로고침 버튼) 일 때만 다시 fetch.
+let cachedMeta = null;
 let inFlight = null;
 
 export async function refreshLunch(force = false) {
-  if (inFlight) return inFlight;
+  if (!force && cachedMeta) return;
+  if (inFlight && !force) return inFlight;
+
   const metaEl = $('#lunch-meta');
   const imgEl = $('#lunch-image');
-  metaEl.textContent = force ? '강제 갱신 중...' : '불러오는 중...';
-  if (force) imgEl.removeAttribute('src');
+  if (force) {
+    metaEl.textContent = '강제 갱신 중...';
+    imgEl.removeAttribute('src');
+  } else {
+    metaEl.textContent = '불러오는 중...';
+  }
 
   inFlight = (async () => {
     try {
       const { meta, stale, error } = await api(`/api/lunch${force ? '?force=1' : ''}`);
+      cachedMeta = meta;
       renderMeta(meta, { stale, error });
     } catch (err) {
       metaEl.textContent = `오류: ${err.message}`;

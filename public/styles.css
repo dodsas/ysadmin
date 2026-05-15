@@ -687,8 +687,11 @@ main {
 .lunch-meta {
   color: var(--muted);
   font-size: 13px;
+  line-height: 1.4;
   margin-bottom: 8px;
   white-space: pre-line;
+  /* 로딩 1줄 → 데이터 2줄 전환 시 아래 이미지가 밀려 내려가는 layout shift 방지 */
+  min-height: calc(1.4em * 2);
 }
 
 .lunch-image-wrap {
