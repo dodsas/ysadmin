@@ -25,77 +25,29 @@ function isWaking(computer) {
   return Date.now() - new Date(computer.lastWakeAt).getTime() < WAKE_WINDOW_MS;
 }
 
-function renderComputer(computer) {
+// id → 렌더된 row 노드. refresh 시 innerHTML 통째 교체 대신 키 기반 diff 로
+// 갱신하면, 5초 폴링 × N 개 row 만큼의 reflow 가 사라지고 사용자가 누르고
+// 있던 버튼/포커스/터치 상태가 새로고침으로 파괴되지 않는다.
+const renderedById = new Map();
+
+function createComputerNode(id) {
   const tpl = $('#computer-row');
   const node = tpl.content.firstElementChild.cloneNode(true);
-  node.dataset.id = computer.id;
+  node.dataset.id = id;
+  attachDragHandlers(node, id, ctx);
+  bindComputerHandlers(node);
+  return node;
+}
 
-  const lastStatus = computer.lastStatus || 'unknown';
-  const waking = isWaking(computer);
-  const statusEl = $('[data-status]', node);
-  if (waking) {
-    statusEl.dataset.status = 'unknown';
-    $('.status-label', statusEl).textContent = '깨우는 중';
-  } else {
-    statusEl.dataset.status = lastStatus;
-    $('.status-label', statusEl).textContent = computerStatusLabel(lastStatus);
-  }
-
-  $('[data-label]', node).textContent = computer.label || computer.mac;
-  const ipDisplay = computer.ip || computer.lastSeenIp;
-  $('[data-mac]', node).textContent = computer.mac + (ipDisplay ? ` · ${ipDisplay}` : '');
-
-  const metaParts = [`마지막 부팅 시도: ${formatTimestamp(computer.lastWakeAt)}`];
-  if (computer.lastStatusAt) metaParts.push(`상태확인: ${formatTimestamp(computer.lastStatusAt)}`);
-  $('[data-meta]', node).textContent = metaParts.join('\n');
-
+function bindComputerHandlers(node) {
+  // 핸들러는 항상 node._computer 의 최신 값을 읽는다. 클로저로 잡아두면
+  // diff 갱신 후 stale 한 라벨/상태로 동작할 수 있음.
   const toggleBtn = $('[data-action="toggle"]', node);
   const statusBtn = $('[data-action="status"]', node);
-  const shuttingDown = activeShutdowns.has(computer.id);
-  const checking = activeChecks.has(computer.id);
-  const shutdownReady = Boolean(computer.shutdown && computer.shutdown.enabled);
-
-  toggleBtn.classList.remove('btn-primary', 'btn-warn');
-  toggleBtn.title = '';
-  toggleBtn.dataset.mode = '';
-
-  if (shuttingDown) {
-    toggleBtn.textContent = '끄는 중';
-    toggleBtn.disabled = true;
-    toggleBtn.classList.add('btn-warn');
-    statusBtn.disabled = true;
-  } else if (waking) {
-    toggleBtn.textContent = '켜는 중';
-    toggleBtn.disabled = true;
-    toggleBtn.classList.add('btn-primary');
-    statusBtn.disabled = true;
-  } else if (checking) {
-    toggleBtn.textContent = '확인 중';
-    toggleBtn.disabled = true;
-    toggleBtn.classList.add('btn-primary');
-    statusBtn.disabled = true;
-  } else if (lastStatus === 'up') {
-    if (shutdownReady) {
-      toggleBtn.textContent = '끄기';
-      toggleBtn.disabled = false;
-      toggleBtn.classList.add('btn-warn');
-      toggleBtn.dataset.mode = 'shutdown';
-    } else {
-      toggleBtn.textContent = '✓ 켜짐';
-      toggleBtn.disabled = true;
-      toggleBtn.classList.add('btn-primary');
-      toggleBtn.title = '끄기 기능: ⚙ 설정에서 SSH 활성화 필요';
-    }
-    statusBtn.disabled = false;
-  } else {
-    toggleBtn.textContent = '켜기';
-    toggleBtn.disabled = false;
-    toggleBtn.classList.add('btn-primary');
-    toggleBtn.dataset.mode = 'wake';
-    statusBtn.disabled = false;
-  }
 
   toggleBtn.addEventListener('click', async (e) => {
+    const computer = node._computer;
+    if (!computer) return;
     const mode = e.currentTarget.dataset.mode;
     if (mode === 'wake') {
       try {
@@ -122,10 +74,13 @@ function renderComputer(computer) {
   });
 
   $('[data-action="settings"]', node).addEventListener('click', () => {
-    openSettingsDialog(computer);
+    const computer = node._computer;
+    if (computer) openSettingsDialog(computer);
   });
 
   statusBtn.addEventListener('click', async () => {
+    const computer = node._computer;
+    if (!computer) return;
     activeChecks.add(computer.id);
     await refreshComputers();
     try {
@@ -139,6 +94,8 @@ function renderComputer(computer) {
   });
 
   $('[data-action="delete"]', node).addEventListener('click', async () => {
+    const computer = node._computer;
+    if (!computer) return;
     if (!confirm(`정말 삭제하시겠습니까?\n${computer.label} (${computer.mac})`)) return;
     try {
       await api(`/api/computers/${computer.id}`, { method: 'DELETE' });
@@ -147,10 +104,72 @@ function renderComputer(computer) {
       alert(err.message);
     }
   });
+}
 
-  attachDragHandlers(node, computer.id, ctx);
+function updateComputerNode(node, computer) {
+  node._computer = computer;
 
-  return node;
+  const lastStatus = computer.lastStatus || 'unknown';
+  const waking = isWaking(computer);
+  const statusEl = $('[data-status]', node);
+  const statusLabelEl = $('.status-label', statusEl);
+  const nextStatusKey = waking ? 'unknown' : lastStatus;
+  const nextStatusText = waking ? '깨우는 중' : computerStatusLabel(lastStatus);
+  if (statusEl.dataset.status !== nextStatusKey) statusEl.dataset.status = nextStatusKey;
+  if (statusLabelEl.textContent !== nextStatusText) statusLabelEl.textContent = nextStatusText;
+
+  const labelEl = $('[data-label]', node);
+  const nextLabel = computer.label || computer.mac;
+  if (labelEl.textContent !== nextLabel) labelEl.textContent = nextLabel;
+
+  const macEl = $('[data-mac]', node);
+  const ipDisplay = computer.ip || computer.lastSeenIp;
+  const nextMac = computer.mac + (ipDisplay ? ` · ${ipDisplay}` : '');
+  if (macEl.textContent !== nextMac) macEl.textContent = nextMac;
+
+  const metaEl = $('[data-meta]', node);
+  const metaParts = [`마지막 부팅 시도: ${formatTimestamp(computer.lastWakeAt)}`];
+  if (computer.lastStatusAt) metaParts.push(`상태확인: ${formatTimestamp(computer.lastStatusAt)}`);
+  const nextMeta = metaParts.join('\n');
+  if (metaEl.textContent !== nextMeta) metaEl.textContent = nextMeta;
+
+  const toggleBtn = $('[data-action="toggle"]', node);
+  const statusBtn = $('[data-action="status"]', node);
+  const shuttingDown = activeShutdowns.has(computer.id);
+  const checking = activeChecks.has(computer.id);
+  const shutdownReady = Boolean(computer.shutdown && computer.shutdown.enabled);
+
+  let label, disabled, statusDisabled;
+  let mode = '';
+  let cls = '';
+  let title = '';
+
+  if (shuttingDown) {
+    label = '끄는 중'; disabled = true; cls = 'btn-warn'; statusDisabled = true;
+  } else if (waking) {
+    label = '켜는 중'; disabled = true; cls = 'btn-primary'; statusDisabled = true;
+  } else if (checking) {
+    label = '확인 중'; disabled = true; cls = 'btn-primary'; statusDisabled = true;
+  } else if (lastStatus === 'up') {
+    if (shutdownReady) {
+      label = '끄기'; disabled = false; cls = 'btn-warn'; mode = 'shutdown';
+    } else {
+      label = '✓ 켜짐'; disabled = true; cls = 'btn-primary';
+      title = '끄기 기능: ⚙ 설정에서 SSH 활성화 필요';
+    }
+    statusDisabled = false;
+  } else {
+    label = '켜기'; disabled = false; cls = 'btn-primary'; mode = 'wake';
+    statusDisabled = false;
+  }
+
+  if (toggleBtn.textContent !== label) toggleBtn.textContent = label;
+  if (toggleBtn.disabled !== disabled) toggleBtn.disabled = disabled;
+  if (toggleBtn.dataset.mode !== mode) toggleBtn.dataset.mode = mode;
+  if (toggleBtn.title !== title) toggleBtn.title = title;
+  toggleBtn.classList.toggle('btn-primary', cls === 'btn-primary');
+  toggleBtn.classList.toggle('btn-warn', cls === 'btn-warn');
+  if (statusBtn.disabled !== statusDisabled) statusBtn.disabled = statusDisabled;
 }
 
 async function pollShutdownStatus(id, maxDurationMs, intervalMs) {
@@ -253,15 +272,54 @@ export async function refreshComputers() {
   if (isDraggingActive()) return;
   const { computers } = await api('/api/computers');
   const container = ctx.container;
-  container.innerHTML = '';
+
   if (!computers.length) {
-    const empty = document.createElement('p');
-    empty.className = 'empty';
-    empty.textContent = '등록된 컴퓨터가 없습니다.';
-    container.appendChild(empty);
+    // 노드 캐시 비우고 empty 상태로 교체.
+    renderedById.clear();
+    container.replaceChildren(emptyMessage());
     return;
   }
-  computers.forEach((c) => container.appendChild(renderComputer(c)));
+
+  // 빈/empty 상태에서 진입한 경우 등 캐시와 DOM 이 어긋날 수 있어 정합화.
+  if (container.firstElementChild && !container.firstElementChild.dataset.id) {
+    container.replaceChildren();
+    renderedById.clear();
+  }
+
+  const nextIds = new Set(computers.map((c) => c.id));
+
+  // 새 목록에서 빠진 row 는 제거.
+  for (const [id, node] of renderedById) {
+    if (!nextIds.has(id)) {
+      node.remove();
+      renderedById.delete(id);
+    }
+  }
+
+  // 순서대로 update / 신규 생성 후 올바른 위치에 배치.
+  let cursor = null; // 마지막으로 자리잡힌 row — 다음 노드를 그 뒤에 둔다.
+  for (const c of computers) {
+    let node = renderedById.get(c.id);
+    if (!node) {
+      node = createComputerNode(c.id);
+      renderedById.set(c.id, node);
+    }
+    updateComputerNode(node, c);
+
+    const expectedNext = cursor ? cursor.nextElementSibling : container.firstElementChild;
+    if (expectedNext !== node) {
+      if (cursor) cursor.after(node);
+      else container.prepend(node);
+    }
+    cursor = node;
+  }
+}
+
+function emptyMessage() {
+  const p = document.createElement('p');
+  p.className = 'empty';
+  p.textContent = '등록된 컴퓨터가 없습니다.';
+  return p;
 }
 
 export function setupAddComputerForm() {
@@ -299,12 +357,11 @@ export function setupRefreshComputersButton() {
 }
 
 export async function onEnterComputersTab() {
+  // 탭 진입 시 백엔드에 전체 상태 체크를 트리거만 한다. 결과는 5초 폴링이
+  // 자연스럽게 흡수하므로 추가 setTimeout 새로고침은 불필요. (예전엔 3초/10초
+  // 두 번을 더 새로고침했지만, 폴링과 겹쳐 같은 시점에 다중 fetch 발생.)
   try {
-    const result = await api('/api/computers/check-all', { method: 'POST' });
-    if (result && result.ok) {
-      setTimeout(() => refreshComputers().catch(() => {}), 3000);
-      setTimeout(() => refreshComputers().catch(() => {}), 10000);
-    }
+    await api('/api/computers/check-all', { method: 'POST' });
   } catch {
     /* ignore */
   }

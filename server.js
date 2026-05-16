@@ -205,9 +205,10 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.get('/api/version', (_req, res) => {
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
-  res.set('Pragma', 'no-cache');
-  res.set('Expires', '0');
+  // VERSION 은 프로세스 생명주기 동안 불변. 프론트는 SSE 스트림으로 갱신을
+  // 통지받으므로 이 엔드포인트는 외부 헬스체크/디버깅용. no-store 강제는 과해서
+  // 짧게 캐시 허용.
+  res.set('Cache-Control', 'public, max-age=60');
   res.json({ version: VERSION });
 });
 
