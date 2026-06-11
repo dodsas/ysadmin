@@ -36,6 +36,9 @@
         <button class="tab" role="tab" data-tab="logs" aria-selected="false">
           로그
         </button>
+        <button class="tab" role="tab" data-tab="apisites" aria-selected="false">
+          OPENAPI
+        </button>
         <div class="tabbar-actions">
           <button
             id="api-keys-link"
@@ -187,6 +190,49 @@
         <div id="logs-list" class="logs-list">
           <p class="empty">로그 탭으로 들어오면 불러옵니다.</p>
         </div>
+      </section>
+
+      <section class="panel" data-panel="apisites">
+        <div class="panel-head">
+          <div>
+            <h2>OPENAPI</h2>
+            <p class="panel-desc">
+              자주 쓰는 OpenAPI / 공공데이터 사이트를 사이트명·주소·용도로 정리합니다.
+              사이트 아이콘(favicon)은 자동으로 불러와 표에 표시됩니다.
+            </p>
+          </div>
+          <button id="apisites-refresh-btn" class="btn btn-ghost" type="button">새로고침</button>
+        </div>
+
+        <button
+          id="add-apisite-toggle"
+          class="btn btn-ghost add-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="add-apisite-form"
+        >+ 사이트 추가</button>
+        <form id="add-apisite-form" class="add-form add-form-apisites is-collapsed-mobile" autocomplete="off">
+          <input id="apisite-name-input" type="text" name="name" placeholder="사이트명 (예: 공공데이터포털)" />
+          <input id="apisite-url-input" type="text" name="url" placeholder="사이트 주소 (예: data.go.kr)" required />
+          <input id="apisite-purpose-input" type="text" name="purpose" placeholder="용도 (선택)" />
+          <button class="btn btn-primary" type="submit">추가</button>
+        </form>
+
+        <div id="apisites-table-wrap" class="apisites-table-wrap" hidden>
+          <table class="apisites-table">
+            <thead>
+              <tr>
+                <th class="apisite-icon-col" aria-label="아이콘"></th>
+                <th>사이트명</th>
+                <th>사이트주소</th>
+                <th>용도</th>
+                <th class="apisite-actions-col" aria-label="작업"></th>
+              </tr>
+            </thead>
+            <tbody id="apisites-tbody"></tbody>
+          </table>
+        </div>
+        <p id="apisites-empty" class="empty">등록된 사이트가 없습니다. 위 입력창에서 추가해주세요.</p>
       </section>
 
     </main>
@@ -378,6 +424,28 @@
             <input name="shutdownCommand" type="text" />
           </label>
         </fieldset>
+        <div class="dialog-actions">
+          <button type="button" data-dialog-cancel>취소</button>
+          <button type="submit" class="btn btn-primary">저장</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="apisite-settings-dialog" class="settings-dialog">
+      <form id="apisite-settings-form" method="dialog">
+        <h3>사이트 설정</h3>
+        <label>
+          <span>사이트명</span>
+          <input name="name" type="text" required />
+        </label>
+        <label>
+          <span>사이트주소</span>
+          <input name="url" type="text" required />
+        </label>
+        <label>
+          <span>용도</span>
+          <input name="purpose" type="text" placeholder="선택" />
+        </label>
         <div class="dialog-actions">
           <button type="button" data-dialog-cancel>취소</button>
           <button type="submit" class="btn btn-primary">저장</button>

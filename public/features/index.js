@@ -4,8 +4,9 @@ import { pcFeature } from './pc.js';
 import { menuFeature } from './menu.js';
 import { keepaliveFeature } from './keepalive.js';
 import { logsFeature } from './logs.js';
+import { apiSitesFeature } from './api-sites.js';
 
-export const features = [pcFeature, menuFeature, keepaliveFeature, logsFeature];
+export const features = [pcFeature, menuFeature, keepaliveFeature, logsFeature, apiSitesFeature];
 
 export function getFeature(id) {
   return features.find((f) => f.id === id) || null;

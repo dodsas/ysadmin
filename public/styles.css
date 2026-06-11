@@ -661,6 +661,106 @@ main {
   border-radius: 8px;
 }
 
+/* ── OPENAPI 사이트 표 ─────────────────────────────────────── */
+.apisites-table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.apisites-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.apisites-table thead th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+  white-space: nowrap;
+}
+
+.apisites-table tbody td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.apisites-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.apisites-table tbody tr:hover {
+  background: var(--surface-2);
+}
+
+.apisite-icon-col {
+  width: 44px;
+}
+
+.apisite-actions-col {
+  width: 1%;
+}
+
+.apisite-icon-cell {
+  text-align: center;
+}
+
+.apisite-favicon {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  object-fit: contain;
+  display: inline-block;
+  vertical-align: middle;
+  background: var(--surface-2);
+}
+
+.apisite-name {
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.apisite-name:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.apisite-url {
+  color: var(--muted);
+  font-size: 13px;
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.apisite-url:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.apisite-purpose-cell {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.apisite-actions-cell {
+  white-space: nowrap;
+  text-align: right;
+}
+
+.apisite-actions-cell .btn {
+  padding: 6px 10px;
+}
+
 .target {
   display: grid;
   grid-template-columns: 28px 100px 1fr auto;
@@ -676,6 +776,10 @@ main {
 
 .add-form-computers {
   grid-template-columns: 1fr 180px 180px auto;
+}
+
+.add-form-apisites {
+  grid-template-columns: 220px 1fr 220px auto;
 }
 
 .target.is-dragging {
@@ -1063,6 +1167,57 @@ main {
   padding: 80px 24px;
   text-align: center;
   color: var(--muted);
+}
+
+/* OPENAPI 표 — 모바일에서는 행을 카드처럼 쌓아 가로 스크롤 제거 */
+@media (max-width: 720px) {
+  .apisites-table thead {
+    display: none;
+  }
+  .apisites-table,
+  .apisites-table tbody {
+    display: block;
+  }
+  .apisites-table tr {
+    display: grid;
+    grid-template-columns: 24px 1fr auto;
+    gap: 2px 10px;
+    align-items: center;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .apisites-table tr:last-child {
+    border-bottom: 0;
+  }
+  .apisites-table tbody td {
+    display: block;
+    padding: 0;
+    border: 0;
+  }
+  .apisite-icon-cell {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .apisite-name-cell {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+  }
+  .apisite-actions-cell {
+    grid-column: 3;
+    grid-row: 1;
+    text-align: right;
+  }
+  .apisite-url-cell {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin-top: 6px;
+  }
+  .apisite-purpose-cell {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    margin-top: 2px;
+  }
 }
 
 .auth-overlay {

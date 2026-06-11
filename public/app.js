@@ -110,6 +110,12 @@ setupAddToggle({
   openLabel: '+ 컴퓨터 추가',
   closeLabel: '− 닫기',
 });
+setupAddToggle({
+  buttonId: 'add-apisite-toggle',
+  formId: 'add-apisite-form',
+  openLabel: '+ 사이트 추가',
+  closeLabel: '− 닫기',
+});
 
 (async () => {
   try {
