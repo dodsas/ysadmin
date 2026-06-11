@@ -81,11 +81,43 @@ async function onAuthenticated() {
   if (DEFAULT_TAB) onEnterFeature(DEFAULT_TAB);
   if (pollersStarted) return;
   pollersStarted = true;
-  setInterval(() => {
+  startPollers();
+}
+
+// 탭이 백그라운드/스탠바이 (iOS PWA 가 홈으로 빠지면 document.hidden=true) 일
+// 때는 폴링을 멈춰 배터리·네트워크를 절약하고, 복귀 시 즉시 1회 refresh.
+function startPollers() {
+  let timer = null;
+  let lastTickAt = 0;
+
+  const tick = () => {
     if (!isAuthenticated()) return;
+    lastTickAt = Date.now();
     refreshAll();
     pollTabOrder().catch((err) => console.error(err));
-  }, POLL_INTERVAL_MS);
+  };
+
+  const start = () => {
+    if (timer != null) return;
+    timer = setInterval(tick, POLL_INTERVAL_MS);
+  };
+
+  const stop = () => {
+    if (timer == null) return;
+    clearInterval(timer);
+    timer = null;
+  };
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      stop();
+    } else {
+      if (Date.now() - lastTickAt >= POLL_INTERVAL_MS) tick();
+      start();
+    }
+  });
+
+  if (!document.hidden) start();
 }
 
 setOnAuthenticated(onAuthenticated);
