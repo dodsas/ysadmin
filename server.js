@@ -1,4 +1,5 @@
 import express from 'express';
+import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { getTabOrder, setTabOrder } from './lib/tabs.js';
@@ -23,6 +24,28 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 5566);
 const VERSION = process.env.IMAGE_TAG || `dev-${Date.now()}`;
 const SESSION_COOKIE = 'ys_session';
+
+// git 커밋 해쉬 — 푸터 카피라이트에 노출.
+// 운영 컨테이너에는 .git 이 없으므로(git archive 로 소스만 복사) IMAGE_TAG
+// (`b<빌드번호>-<short sha>`) 에서 sha 를 파싱한다. 로컬 개발은 git 으로 직접 조회.
+function resolveCommit() {
+  const tag = process.env.IMAGE_TAG;
+  if (tag) {
+    const m = tag.match(/-([0-9a-f]{7,40})$/i);
+    return m ? m[1] : tag;
+  }
+  try {
+    return execSync('git rev-parse --short HEAD', {
+      cwd: __dirname,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    })
+      .toString()
+      .trim();
+  } catch {
+    return 'unknown';
+  }
+}
+const COMMIT = resolveCommit();
 
 const app = express();
 app.use(express.json());
@@ -209,7 +232,7 @@ app.get('/api/version', (_req, res) => {
   // 통지받으므로 이 엔드포인트는 외부 헬스체크/디버깅용. no-store 강제는 과해서
   // 짧게 캐시 허용.
   res.set('Cache-Control', 'public, max-age=60');
-  res.json({ version: VERSION });
+  res.json({ version: VERSION, commit: COMMIT });
 });
 
 // SSE 버전 스트림 — 클라이언트는 EventSource 로 구독.

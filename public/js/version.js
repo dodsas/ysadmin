@@ -69,3 +69,18 @@ export function setupUpdateBanner() {
 export async function checkVersion() {
   // SSE 가 모든 변경 감지를 담당. 이 함수는 더 이상 의미 없음.
 }
+
+// 푸터 카피라이트에 git 커밋 해쉬를 채운다. 인증 여부와 무관하게 노출.
+export async function setupFooter() {
+  const yearEl = $('#footer-year');
+  if (yearEl) yearEl.textContent = String(new Date().getFullYear());
+  const commitEl = $('#footer-commit');
+  if (!commitEl) return;
+  try {
+    const res = await fetch('/api/version', { credentials: 'same-origin' });
+    const { commit, version } = await res.json();
+    commitEl.textContent = commit || version || 'unknown';
+  } catch {
+    commitEl.textContent = 'unknown';
+  }
+}

@@ -9,7 +9,7 @@ import {
   setupLogout,
   setOnAuthenticated,
 } from './js/auth.js';
-import { startVersionStream, setupUpdateBanner } from './js/version.js';
+import { startVersionStream, setupUpdateBanner, setupFooter } from './js/version.js';
 import { setupApiKeysDialog } from './js/api-keys.js';
 import {
   initTabOrder,
@@ -126,6 +126,7 @@ initFeatures();
 setupTabs();
 setupUpdateBanner();
 startVersionStream();
+setupFooter();
 setupAuthForm();
 setupLogout();
 setupApiKeysDialog();
