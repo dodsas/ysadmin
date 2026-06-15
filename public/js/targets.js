@@ -11,6 +11,25 @@ export function setTargetsContainer(el) {
   ctx.container = el;
 }
 
+// ms 를 사람이 읽기 좋은 주기 문자열로 (가장 큰 정확한 단위 기준).
+function formatInterval(ms) {
+  const sec = Math.round((Number(ms) || 0) / 1000);
+  if (sec <= 0) return '기본';
+  if (sec % 86400 === 0) return `${sec / 86400}일`;
+  if (sec % 3600 === 0) return `${sec / 3600}시간`;
+  if (sec % 60 === 0) return `${sec / 60}분`;
+  return `${sec}초`;
+}
+
+// ms → 다이얼로그의 {값, 단위(초)} (가장 큰 정확한 단위로 표현).
+function intervalToValueUnit(ms) {
+  const sec = Math.round((Number(ms) || 0) / 1000);
+  for (const unit of [86400, 3600, 60]) {
+    if (sec >= unit && sec % unit === 0) return { value: sec / unit, unit };
+  }
+  return { value: Math.max(1, Math.round(sec / 60)), unit: 60 };
+}
+
 function renderTarget(target) {
   const tpl = $('#target-row');
   const node = tpl.content.firstElementChild.cloneNode(true);
@@ -53,6 +72,7 @@ function renderTarget(target) {
   });
 
   const metaParts = [];
+  metaParts.push(`주기: ${formatInterval(target.intervalMs)}`);
   metaParts.push(`마지막 체크: ${formatTimestamp(target.lastCheckedAt)}`);
   if (target.lastStatusCode != null) metaParts.push(`HTTP ${target.lastStatusCode}`);
   if (target.lastLatencyMs != null) metaParts.push(`${target.lastLatencyMs}ms`);
@@ -274,6 +294,9 @@ function openTargetSettingsDialog(target) {
   const dlg = $('#target-settings-dialog');
   const form = $('#target-settings-form');
   form.label.value = target.label || '';
+  const { value: intervalValue, unit: intervalUnit } = intervalToValueUnit(target.intervalMs);
+  form.intervalValue.value = intervalValue;
+  form.intervalUnit.value = String(intervalUnit);
   const ba = target.basicAuth || {};
   form.basicUser.value = ba.username || '';
   form.basicPassword.value = ba.password || '';
@@ -311,8 +334,11 @@ export function setupTargetSettingsDialog() {
       alert('SSO 시크릿을 입력하거나 생성 버튼을 눌러주세요.');
       return;
     }
+    const intervalValue = Math.max(1, Number(form.intervalValue.value) || 1);
+    const intervalUnitSec = Number(form.intervalUnit.value) || 60;
     const body = {
       label: form.label.value.trim(),
+      intervalMs: intervalValue * intervalUnitSec * 1000,
       basicAuth: username ? { username, password: form.basicPassword.value } : null,
       sso: ssoEnabled
         ? {

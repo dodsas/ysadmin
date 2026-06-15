@@ -138,6 +138,7 @@
             <p class="panel-desc">
               render.com 무료 인스턴스가 15분 idle로 잠드는 것을 막기 위해 등록된 URL에
               주기적으로 GET 요청을 보냅니다. 응답이 정상이면 녹색, 실패하면 적색으로 표시됩니다.
+              체크 주기는 ⚙ 설정에서 대상별로 분~하루 단위까지 조정할 수 있습니다.
             </p>
           </div>
           <button id="refresh-btn" class="btn btn-ghost" type="button">새로고침</button>
@@ -337,6 +338,17 @@
         <label>
           <span>라벨</span>
           <input name="label" type="text" required />
+        </label>
+        <label>
+          <span>체크 주기 (하트비트 GET 간격)</span>
+          <span class="row-inline">
+            <input name="intervalValue" type="number" min="1" step="1" inputmode="numeric" required />
+            <select name="intervalUnit">
+              <option value="60">분</option>
+              <option value="3600">시간</option>
+              <option value="86400">일</option>
+            </select>
+          </span>
         </label>
         <fieldset>
           <legend>SSO 핸드오프 (선택)</legend>
